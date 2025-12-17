@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminFirestore } from "@/lib/firebase/admin";
+import { adminFirestore, adminStorage } from "@/lib/firebase/admin";
+import { getAdminFromRequest } from "@/lib/auth-helper";
+import { logAdminAction } from "@/lib/logger";
 
 export async function GET() {
     try {
@@ -25,6 +27,9 @@ export async function POST(request: Request) {
             createdAt: new Date().toISOString(),
         });
 
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "CREATE", "SERVER", `Created server ${body.name || "Unknown"}`, res.id, body);
+
         return NextResponse.json({ id: res.id, ...body }, { status: 201 });
     } catch (error) {
         console.error("Error adding server:", error);
@@ -47,6 +52,10 @@ export async function PUT(request: Request) {
             updatedAt: new Date().toISOString(),
         });
 
+        const admin = await getAdminFromRequest(request);
+        const targetName = data.name || (await adminFirestore.collection("servers").doc(id).get()).data()?.name || id;
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "UPDATE", "SERVER", `Updated server ${targetName}`, id, targetName, data);
+
         return NextResponse.json({ success: true, id });
     } catch (error) {
         console.error("Error updating server:", error);
@@ -63,8 +72,30 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Missing Server ID" }, { status: 400 });
         }
 
+        const serverDoc = await adminFirestore.collection("servers").doc(id).get();
+        const targetName = serverDoc.data()?.name || id;
+
+        // Delete associated OVPN file from Storage bucket if exists
+        const serverData = serverDoc.data();
+        if (serverData?.ovpnFileUrl) {
+            try {
+                // Format: https://firebasestorage.googleapis.com/v0/b/[bucket]/o/[path]?alt=media...
+                const matches = serverData.ovpnFileUrl.match(/\/o\/(.+?)\?/);
+                if (matches && matches[1]) {
+                    const filePath = decodeURIComponent(matches[1]);
+                    await adminStorage.bucket().file(filePath).delete();
+                    console.log(`[API/Servers] Deleted OVPN file for ${id}: ${filePath}`);
+                }
+            } catch (storageError) {
+                // Ignore if file doesn't exist or permission error, but log it
+                console.warn(`[API/Servers] Could not delete OVPN file for ${id}:`, storageError);
+            }
+        }
+
         await adminFirestore.collection("servers").doc(id).delete();
-        // Optional: Delete associated OVPN file from Storage bucket if needed
+
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "DELETE", "SERVER", `Deleted server ${targetName}`, id, targetName);
 
         return NextResponse.json({ success: true, id });
     } catch (error) {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminFirestore, adminMessaging } from "@/lib/firebase/admin";
+import { adminFirestore, adminMessaging } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { getAdminFromRequest } from "@/lib/auth-helper";
+import { logAdminAction } from "@/lib/logger";
 
 export async function GET(request: Request) {
     try {
@@ -92,6 +94,9 @@ export async function POST(request: Request) {
         };
 
         const docRef = await adminFirestore.collection("notifications").add(notificationRecord);
+
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "SEND", "NOTIFICATION", `Sent notification: ${title} to ${target}`, docRef.id);
 
         return NextResponse.json({
             success: true,

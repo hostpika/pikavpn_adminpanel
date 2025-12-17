@@ -41,7 +41,10 @@ import {
   Zap,
   Palette,
   DollarSign,
-  Send, // Added Send icon
+  Send,
+  FileText, // Added FileText icon
+  PlusCircle,
+  Computer,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -106,7 +109,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Servers", href: "/dashboard/servers", icon: Server },
+    {
+      name: "Servers",
+      href: "/dashboard/servers",
+      icon: Server,
+      children: [
+        { name: "All Servers", href: "/dashboard/servers", icon: Computer },
+        { name: "Add New Server", href: "/dashboard/servers/add", icon: PlusCircle },
+      ]
+    },
     { name: "Users", href: "/dashboard/users", icon: Users },
     {
       name: "Configuration",
@@ -123,6 +134,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Monitoring", href: "/dashboard/monitoring", icon: Activity },
     { name: "Notifications", href: "/dashboard/notifications", icon: Send },
+    { name: "Activity Logs", href: "/dashboard/logs", icon: FileText },
     { name: "More Apps", href: "/dashboard/more-apps", icon: Smartphone },
   ]
 

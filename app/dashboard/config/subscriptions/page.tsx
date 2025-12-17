@@ -37,6 +37,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
+import { fetchWithAuth } from "@/lib/api-client"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -149,9 +150,8 @@ export default function SubscriptionsConfigPage() {
             }
 
             const method = currentPlan.id ? "PUT" : "POST"
-            const res = await fetch("/api/subscriptions", {
+            const res = await fetchWithAuth("/api/subscriptions", {
                 method,
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             })
 
@@ -178,7 +178,7 @@ export default function SubscriptionsConfigPage() {
         if (!currentPlan.id) return
 
         try {
-            const res = await fetch(`/api/subscriptions?id=${currentPlan.id}`, {
+            const res = await fetchWithAuth(`/api/subscriptions?id=${currentPlan.id}`, {
                 method: "DELETE"
             })
 

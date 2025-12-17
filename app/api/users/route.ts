@@ -1,6 +1,8 @@
 
 import { NextResponse } from "next/server";
 import { adminAuth, adminFirestore } from "@/lib/firebase/admin";
+import { getAdminFromRequest } from "@/lib/auth-helper";
+import { logAdminAction } from "@/lib/logger";
 
 export async function GET(request: Request) {
     try {
@@ -56,18 +58,35 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
+        const admin = await getAdminFromRequest(request);
+        const adminId = admin?.uid || "system";
+        const adminEmail = admin?.email || "system";
+
+        let targetName = userId;
+        try {
+            const userRecord = await adminAuth.getUser(userId);
+            targetName = userRecord.email || userRecord.displayName || userId;
+        } catch (e) {
+            console.warn("Could not fetch user info for logging", e);
+        }
+
+        console.log(`[API/Users] Action: ${action}, Admin: ${adminEmail} (${adminId})`);
+
         if (action === "ban") {
             await adminAuth.updateUser(userId, { disabled: true });
             await adminFirestore.collection("users").doc(userId).set({ status: "suspended" }, { merge: true });
+            await logAdminAction(adminId, adminEmail, "BAN", "USER", `Banned user ${targetName}`, userId, targetName);
         } else if (action === "unban") {
             await adminAuth.updateUser(userId, { disabled: false });
             // Revert to active or previous status if known, defaulting to active
             await adminFirestore.collection("users").doc(userId).set({ status: "active" }, { merge: true });
+            await logAdminAction(adminId, adminEmail, "UNBAN", "USER", `Unbanned user ${targetName}`, userId, targetName);
         } else if (action === "set_role") {
             // payload.role should be 'admin' or 'user'
-            const role = payload?.role || "user";
-            await adminAuth.setCustomUserClaims(userId, { role });
-            await adminFirestore.collection("users").doc(userId).set({ role }, { merge: true });
+            const newRole = payload?.role || "user";
+            await adminAuth.setCustomUserClaims(userId, { role: newRole });
+            await adminFirestore.collection("users").doc(userId).set({ role: newRole }, { merge: true });
+            await logAdminAction(adminId, adminEmail, "SET_ROLE", "USER", `Changed role for ${targetName} to ${newRole}`, userId, targetName, { role: newRole });
         } else if (action === "set_plan") {
             // payload.plan should be 'premium' or 'free'
             const plan = payload?.plan || "free";
@@ -75,9 +94,10 @@ export async function PUT(request: Request) {
                 plan: plan,
                 status: plan === "premium" ? "premium" : "active"
             }, { merge: true });
+            await logAdminAction(adminId, adminEmail, "SET_PLAN", "USER", `Set plan for ${targetName} to ${plan}`, userId, targetName, { plan });
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, debug: { admin: adminEmail, id: adminId } });
     } catch (error) {
         console.error("Error updating user:", error);
         // Return clearer error message

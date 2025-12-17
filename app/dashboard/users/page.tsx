@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils"
 // Removed direct import from user-service, using fetch now
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/components/auth-provider"
+import { fetchWithAuth } from "@/lib/api-client"
 
 // Define UserData locally or import shared type
 export interface UserData {
@@ -216,9 +217,8 @@ export default function UsersPage() {
         return
       }
 
-      const res = await fetch(endpoint, {
+      const res = await fetchWithAuth(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
 
@@ -227,7 +227,11 @@ export default function UsersPage() {
         throw new Error(errorData.error || "Failed to update user")
       }
 
-      toast({ title: "Success", description: "User updated successfully" })
+      const data = await res.json()
+      toast({
+        title: "Success",
+        description: `User updated successfully. Logged as: ${data.debug?.admin}`
+      })
       loadUsers() // Reload to see changes
 
       setShowActionDialog(false)

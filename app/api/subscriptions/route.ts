@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminFirestore } from "@/lib/firebase/admin";
+import { getAdminFromRequest } from "@/lib/auth-helper";
+import { logAdminAction } from "@/lib/logger";
 
 export async function GET() {
     try {
@@ -32,6 +34,9 @@ export async function POST(request: Request) {
 
         const res = await adminFirestore.collection("plans").add(planData);
 
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "CREATE", "SUBSCRIPTION", `Created plan ${body.name}`, res.id, planData);
+
         return NextResponse.json({ id: res.id, ...planData }, { status: 201 });
     } catch (error) {
         console.error("Error creating plan:", error);
@@ -53,6 +58,9 @@ export async function PUT(request: Request) {
             updatedAt: new Date().toISOString(),
         });
 
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "UPDATE", "SUBSCRIPTION", `Updated plan ${data.name || id}`, id, data);
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error updating plan:", error);
@@ -70,6 +78,9 @@ export async function DELETE(request: Request) {
         }
 
         await adminFirestore.collection("plans").doc(id).delete();
+
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "DELETE", "SUBSCRIPTION", `Deleted plan ${id}`, id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { fetchWithAuth } from "@/lib/api-client"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -105,9 +106,9 @@ export default function NotificationsPage() {
 
     try {
       setSending(true)
-      const res = await fetch("/api/notifications", {
+      setSending(true)
+      const res = await fetchWithAuth("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
 
@@ -140,7 +141,7 @@ export default function NotificationsPage() {
     if (!deleteId) return
 
     try {
-      const res = await fetch(`/api/notifications/${deleteId}`, { method: "DELETE" })
+      const res = await fetchWithAuth(`/api/notifications/${deleteId}`, { method: "DELETE" })
       if (res.ok) {
         toast({ title: "Deleted", description: "Notification history deleted" })
         setNotifications((prev) => prev.filter((n) => n.id !== deleteId))

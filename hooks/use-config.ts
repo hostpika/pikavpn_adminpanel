@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { fetchWithAuth } from "@/lib/api-client"
 
 export interface ConfigState {
     features: {
@@ -160,9 +161,8 @@ export function useConfig() {
     const saveConfig = async () => {
         try {
             setSaving(true)
-            const res = await fetch("/api/config", {
+            const res = await fetchWithAuth("/api/config", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(config),
             })
 

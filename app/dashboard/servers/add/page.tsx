@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Save, FileText, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, FileText, Loader2, Globe, Server, Shield, Wifi, Lock, UploadCloud } from "lucide-react"
 import Link from "next/link"
 import { CountrySelector } from "@/components/country-selector"
 import { parseOVPNFile } from "@/lib/ovpn-parser"
@@ -26,6 +26,23 @@ export default function AddServerPage() {
   const { user, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+
+  const [ovpnFile, setOvpnFile] = useState<File | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    country: "",
+    ip: "",
+    port: "1194",
+    protocol: "UDP",
+    tier: "free",
+    maxCapacity: "500",
+    streaming: false,
+    p2p: false,
+    notes: "",
+    isActive: true,
+    username: "vpn",
+    password: "vpn",
+  })
 
   useEffect(() => {
     if (!authLoading && user?.role !== "admin") {
@@ -45,22 +62,6 @@ export default function AddServerPage() {
       </div>
     )
   }
-  const [ovpnFile, setOvpnFile] = useState<File | null>(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    country: "",
-    ip: "",
-    port: "1194",
-    protocol: "UDP",
-    tier: "free",
-    maxCapacity: "500",
-    streaming: false,
-    p2p: false,
-    notes: "",
-    isActive: true,
-    username: "vpn",
-    password: "vpn",
-  })
 
   const handleOVPNUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -186,222 +187,265 @@ export default function AddServerPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/servers">
-          <Button variant="ghost" size="icon" className="hover:scale-110 active:scale-95">
-            <ArrowLeft className="h-5 w-5" />
+    <div className="max-w-5xl mx-auto space-y-8 pb-10">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/servers">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary transition-colors">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Add Server</h1>
+            <p className="text-muted-foreground mt-1">Configure a new VPN endpoint for your network</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => router.push("/dashboard/servers")} disabled={loading}>
+            Cancel
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add New Server</h1>
-          <p className="text-muted-foreground mt-2">Configure a new VPN server</p>
+          <Button onClick={handleSubmit} disabled={loading} className="min-w-[140px]">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+            Save Server
+          </Button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              <span>Server Information</span>
-              <div className="flex items-center space-x-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Main Info & Connection */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                Basic Information
+              </CardTitle>
+              <CardDescription>Primary identification details for this server</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Server Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g. US-NewYork-01"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Location</Label>
+                  <CountrySelector
+                    value={formData.country}
+                    onChange={(value) => setFormData({ ...formData, country: value })}
+                    placeholder="Select server location..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Internal Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Rack location, provider details, or maintenance notes..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wifi className="h-5 w-5 text-primary" />
+                Connection Configuration
+              </CardTitle>
+              <CardDescription>Upload an OVPN file to auto-fill these details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 border-2 border-dashed rounded-xl bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-center cursor-pointer relative group">
+                <Input
+                  type="file"
+                  accept=".ovpn"
+                  onChange={handleOVPNUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                <div className="flex flex-col items-center justify-center gap-2">
+                  {ovpnFile ? (
+                    <>
+                      <FileText className="h-10 w-10 text-emerald-500" />
+                      <div className="font-medium text-emerald-600">{ovpnFile.name}</div>
+                      <div className="text-sm text-muted-foreground">Config loaded successfully</div>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <div className="font-medium">Drop OVPN file here or click to browse</div>
+                      <div className="text-xs text-muted-foreground">Automatically extracts IP, Port and Protocol</div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="ip">IP Address</Label>
+                  <Input
+                    id="ip"
+                    placeholder="0.0.0.0"
+                    value={formData.ip}
+                    onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="port">Port</Label>
+                  <Input
+                    id="port"
+                    type="number"
+                    placeholder="1194"
+                    value={formData.port}
+                    onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="protocol">Protocol</Label>
+                  <Select value={formData.protocol} onValueChange={(val) => setFormData({ ...formData, protocol: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UDP">UDP (Faster)</SelectItem>
+                      <SelectItem value="TCP">TCP (Reliable)</SelectItem>
+                      <SelectItem value="Both">Both</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Settings & Credentials */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5 text-primary" />
+                Server Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Active Status</Label>
+                  <p className="text-xs text-muted-foreground">Visible to users</p>
+                </div>
                 <Switch
-                  id="isActive"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  onCheckedChange={(c) => setFormData({ ...formData, isActive: c })}
                 />
-                <Label htmlFor="isActive" className="cursor-pointer">
-                  {formData.isActive ? "Active" : "Inactive"}
-                </Label>
               </div>
-            </CardTitle>
-            <CardDescription>Enter the details for your new VPN server</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="ovpn">OVPN Configuration File</Label>
-              <div className="flex items-center gap-3">
-                <Input id="ovpn" type="file" accept=".ovpn" onChange={handleOVPNUpload} className="cursor-pointer" />
-                {ovpnFile && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    {ovpnFile.name}
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Upload an OVPN file to automatically extract IP, port, and protocol
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Server Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="US-East-01"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+                <Label>Server Tier</Label>
+                <Select value={formData.tier} onValueChange={(val) => setFormData({ ...formData, tier: val })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Free Server</SelectItem>
+                    <SelectItem value="premium">Premium Server 👑</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country *</Label>
-                <CountrySelector
-                  value={formData.country}
-                  onChange={(value) => setFormData({ ...formData, country: value })}
-                  placeholder="Select country..."
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="ip">IP Address *</Label>
+                <Label>Max Capacity</Label>
                 <Input
-                  id="ip"
-                  placeholder="198.51.100.1"
-                  value={formData.ip}
-                  onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="port">Port *</Label>
-                <Input
-                  id="port"
                   type="number"
-                  placeholder="1194"
-                  value={formData.port}
-                  onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                  required
+                  value={formData.maxCapacity}
+                  onChange={(e) => setFormData({ ...formData, maxCapacity: e.target.value })}
                 />
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                Credentials
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="protocol">Protocol *</Label>
-                <Select
-                  value={formData.protocol}
-                  onValueChange={(value) => setFormData({ ...formData, protocol: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UDP">UDP</SelectItem>
-                    <SelectItem value="TCP">TCP</SelectItem>
-                    <SelectItem value="Both">Both</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tier">Tier *</Label>
-                <Select value={formData.tier} onValueChange={(value) => setFormData({ ...formData, tier: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxCapacity">Max Capacity *</Label>
-              <Input
-                id="maxCapacity"
-                type="number"
-                placeholder="500"
-                value={formData.maxCapacity}
-                onChange={(e) => setFormData({ ...formData, maxCapacity: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label>Username</Label>
                 <Input
-                  id="username"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="bg-slate-50 dark:bg-slate-900"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label>Password</Label>
                 <Input
-                  id="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="bg-slate-50 dark:bg-slate-900"
                 />
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-3">
-              <Label>Features</Label>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="streaming"
-                    checked={formData.streaming}
-                    onCheckedChange={(checked) => setFormData({ ...formData, streaming: checked as boolean })}
-                  />
-                  <label htmlFor="streaming" className="text-sm cursor-pointer">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Capabilities
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-lg transition-colors">
+                <Checkbox
+                  id="streaming"
+                  checked={formData.streaming}
+                  onCheckedChange={(c) => setFormData({ ...formData, streaming: c as boolean })}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label htmlFor="streaming" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
                     Streaming Optimized
                   </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="p2p"
-                    checked={formData.p2p}
-                    onCheckedChange={(checked) => setFormData({ ...formData, p2p: checked as boolean })}
-                  />
-                  <label htmlFor="p2p" className="text-sm cursor-pointer">
-                    P2P / Torrenting
-                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Unlocks Netflix, Hulu, etc.
+                  </p>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Internal Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Additional notes for internal reference..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={4}
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end pt-4">
-              <Link href="/dashboard/servers">
-                <Button variant="outline" type="button" disabled={loading}>
-                  Cancel
-                </Button>
-              </Link>
-              <Button type="submit" className="gap-2" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Adding Server...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Add Server
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
+              <div className="flex items-center space-x-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-lg transition-colors">
+                <Checkbox
+                  id="p2p"
+                  checked={formData.p2p}
+                  onCheckedChange={(c) => setFormData({ ...formData, p2p: c as boolean })}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label htmlFor="p2p" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                    P2P / Torrenting
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Allows file sharing protocols
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-
   )
 }

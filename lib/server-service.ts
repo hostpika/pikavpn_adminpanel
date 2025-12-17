@@ -1,5 +1,6 @@
 import { storage } from "./firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { fetchWithAuth } from "@/lib/api-client"
 
 export interface ServerData {
   id?: string
@@ -33,11 +34,8 @@ export async function uploadOVPNFile(file: File, serverId: string): Promise<stri
 }
 
 export async function addServer(serverData: Omit<ServerData, "id" | "createdAt" | "updatedAt">): Promise<string> {
-  const response = await fetch("/api/servers", {
+  const response = await fetchWithAuth("/api/servers", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(serverData),
   })
 
@@ -50,11 +48,8 @@ export async function addServer(serverData: Omit<ServerData, "id" | "createdAt" 
 }
 
 export async function updateServer(id: string, serverData: Partial<ServerData>): Promise<void> {
-  const response = await fetch("/api/servers", {
+  const response = await fetchWithAuth("/api/servers", {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ id, ...serverData }),
   })
 
@@ -64,7 +59,7 @@ export async function updateServer(id: string, serverData: Partial<ServerData>):
 }
 
 export async function deleteServer(id: string): Promise<void> {
-  const response = await fetch(`/api/servers?id=${id}`, {
+  const response = await fetchWithAuth(`/api/servers?id=${id}`, {
     method: "DELETE",
   })
 
@@ -74,7 +69,7 @@ export async function deleteServer(id: string): Promise<void> {
 }
 
 export async function getServers(): Promise<ServerData[]> {
-  const response = await fetch("/api/servers")
+  const response = await fetchWithAuth("/api/servers")
 
   if (!response.ok) {
     throw new Error("Failed to fetch servers")

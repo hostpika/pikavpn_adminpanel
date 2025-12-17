@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminFirestore } from "@/lib/firebase/admin";
+import { getAdminFromRequest } from "@/lib/auth-helper";
+import { logAdminAction } from "@/lib/logger";
 
 export async function GET() {
     try {
@@ -30,6 +32,9 @@ export async function POST(request: Request) {
             ...body,
             updatedAt: new Date().toISOString(),
         }, { merge: true });
+
+        const admin = await getAdminFromRequest(request);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "UPDATE", "CONFIG", "Updated system configuration");
 
         return NextResponse.json({ success: true });
     } catch (error) {
