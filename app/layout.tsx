@@ -52,9 +52,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`h-full ${parkinsans.variable} ${delius.variable}`}>
       <body className="font-sans antialiased h-full overflow-auto bg-background">
         <ThemeProvider attribute="class" defaultTheme="dark" storageKey="cloudvpn-theme" enableSystem>
-          <PreferencesProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </PreferencesProvider>
+          <AuthProvider>
+            <PreferencesProvider>{children}</PreferencesProvider>
+          </AuthProvider>
         </ThemeProvider>
         <Toaster />
         <Analytics />

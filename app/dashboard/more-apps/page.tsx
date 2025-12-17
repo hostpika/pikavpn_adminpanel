@@ -234,77 +234,84 @@ export default function MoreAppsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Add New App Card */}
-          <Card className="flex flex-col items-center justify-center p-6 border-dashed cursor-pointer hover:border-primary transition-colors min-h-[220px]" onClick={() => isAdmin && setShowAddDialog(true)}>
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Plus className="h-6 w-6 text-primary" />
+          <div
+            className="flex flex-col items-center justify-center p-8 rounded-[2rem] border-2 border-dashed border-border/50 hover:border-primary/50 bg-card/30 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:bg-card/50 min-h-[280px] group"
+            onClick={() => isAdmin && setShowAddDialog(true)}
+          >
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+              <Plus className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="font-semibold text-lg">Add New App</h3>
-            <p className="text-sm text-muted-foreground text-center mt-1">Add another application to your portfolio</p>
-          </Card>
+            <h3 className="font-semibold text-xl mb-2">Add New App</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-[200px]">Add another application to your portfolio</p>
+          </div>
+
           {apps.map((app) => (
-            <Card key={app.id} className="overflow-hidden hover:shadow-lg transition-all">
-              <CardHeader className="pb-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <Image
-                      src={app.imageUrl || "/placeholder.svg"}
-                      alt={app.name}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate">{app.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {app.category}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">⭐ {app.rating}</span>
-                    </div>
-                  </div>
+            <div
+              key={app.id}
+              className="relative group flex flex-col rounded-[2rem] border p-8 transition-all duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5 bg-card/50 backdrop-blur-sm border-border/50 hover:border-border/80 hover:shadow-lg"
+            >
+              <div className="flex items-start gap-5 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/10 shadow-sm">
+                  <Image
+                    src={app.imageUrl || "/placeholder.svg"}
+                    alt={app.name}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">{app.description}</p>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Smartphone className="h-3 w-3" />
-                    {app.downloads} downloads
+                <div className="flex-1 min-w-0 pt-1">
+                  <h3 className="text-xl font-semibold truncate leading-tight mb-2">{app.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs rounded-lg px-2 font-normal">
+                      {app.category}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span className="text-amber-400">★</span> {app.rating}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-2 bg-transparent" asChild>
-                    <a href={app.playstoreUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3" />
-                      View on Play Store
-                    </a>
-                  </Button>
-                </div>
+              <div className="space-y-4 flex-1">
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{app.description}</p>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(app)}
-                    disabled={!isAdmin}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
-                    onClick={() => confirmDelete(app.id)}
-                    disabled={!isAdmin}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium p-3 bg-secondary/30 rounded-xl">
+                  <Smartphone className="h-4 w-4 text-primary" />
+                  <span>{app.downloads} active installs</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-border/50 flex gap-3">
+                <Button variant="default" size="sm" className="flex-1 gap-2 rounded-xl h-10 shadow-lg shadow-primary/20" asChild>
+                  <a href={app.playstoreUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Play Store
+                  </a>
+                </Button>
+
+                {isAdmin && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-xl h-10 w-10 border-border/50 hover:bg-secondary"
+                      onClick={() => openEditDialog(app)}
+                    >
+                      <Edit className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-xl h-10 w-10 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                      onClick={() => confirmDelete(app.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </div>

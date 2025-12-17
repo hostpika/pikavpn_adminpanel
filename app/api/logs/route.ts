@@ -9,6 +9,7 @@ export async function GET(request: Request) {
         const adminEmail = searchParams.get("admin");
         const fromDate = searchParams.get("from");
         const toDate = searchParams.get("to");
+        const lastTimestamp = searchParams.get("lastTimestamp");
 
         let query = adminFirestore.collection("activity_logs").orderBy("timestamp", "desc");
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
             query = query.where("action", "==", action);
         }
 
-        if (adminEmail && adminEmail !== "all") { // Simple filter by string email match
+        if (adminEmail && adminEmail !== "all") {
             query = query.where("adminEmail", "==", adminEmail);
         }
 
@@ -27,24 +28,36 @@ export async function GET(request: Request) {
 
         if (toDate) {
             const end = new Date(toDate);
-            // Add one day to include the end date fully
             end.setDate(end.getDate() + 1);
             query = query.where("timestamp", "<=", end);
         }
 
-        const snapshot = await query.limit(limit).get();
+        if (lastTimestamp) {
+            // Firestore requires a Date object for Timestamp fields in startAfter
+            query = query.startAfter(new Date(lastTimestamp));
+        }
 
-        const logs = snapshot.docs.map(doc => {
+        // Fetch limit + 1 to check if there are more
+        const snapshot = await query.limit(limit + 1).get();
+        const rawDocs = snapshot.docs;
+        const hasMore = rawDocs.length > limit;
+
+        // If hasMore, remove the extra doc
+        const docs = hasMore ? rawDocs.slice(0, limit) : rawDocs;
+
+        const logs = docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 ...data,
-                // Convert timestamp to ISO string for generic JSON response
                 timestamp: data.timestamp?.toDate().toISOString()
             };
         });
 
-        return NextResponse.json({ logs });
+        const lastDoc = docs[docs.length - 1];
+        const nextCursor = hasMore && lastDoc ? lastDoc.data().timestamp?.toDate().toISOString() : null;
+
+        return NextResponse.json({ logs, nextCursor, hasMore });
     } catch (error) {
         console.error("Error fetching logs:", error);
         return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });

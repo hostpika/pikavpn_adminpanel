@@ -10,7 +10,10 @@ import {
     Check,
     X,
     CreditCard,
-    Tag
+    Tag,
+    CheckCircle2,
+    Sparkles,
+    Shield
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -38,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { fetchWithAuth } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -214,86 +218,102 @@ export default function SubscriptionsConfigPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
-                    <p className="text-muted-foreground">Manage pricing plans fetched by the Android app.</p>
+                    <p className="text-muted-foreground mt-1">Manage and customize your VPN pricing tiers.</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={() => handleOpenDialog()}>
+                    <Button onClick={() => handleOpenDialog()} className="rounded-full shadow-lg hover:shadow-primary/25 transition-all">
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Plan
+                        New Plan
                     </Button>
                 )}
             </div>
 
             {!isAdmin && <AdminAlert message="You need permission to modify subscription plans." />}
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {plans.map((plan) => (
-                    <Card key={plan.id} className={`relative flex flex-col ${!plan.isActive ? 'opacity-75 border-dashed' : ''} ${plan.popular ? 'border-primary ring-1 ring-primary/20' : ''}`}>
-                        <CardHeader className="pb-4">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    {plan.popular && (
-                                        <Badge className="mb-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
-                                            Most Popular
-                                        </Badge>
-                                    )}
-                                    {!plan.isActive && (
-                                        <Badge variant="secondary" className="mb-2 ml-2">
-                                            Inactive
-                                        </Badge>
-                                    )}
-                                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                                    <CardDescription>{plan.googleProductId}</CardDescription>
-                                </div>
-                                {isAdmin && (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Open menu</span>
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleOpenDialog(plan)}>
-                                                <Pencil className="mr-2 h-4 w-4" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="text-red-600 focus:text-red-600"
-                                                onClick={() => {
-                                                    setCurrentPlan(plan)
-                                                    setIsDeleteDialogOpen(true)
-                                                }}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                )}
+                    <div
+                        key={plan.id}
+                        className={cn(
+                            "relative group flex flex-col rounded-[2rem] border p-8 transition-all duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5",
+                            plan.popular
+                                ? "bg-gradient-to-b from-primary/10 to-transparent border-primary/20 shadow-xl shadow-primary/10 dark:from-primary/20"
+                                : "bg-card/50 backdrop-blur-sm border-border/50 hover:border-border/80 hover:shadow-lg",
+                            !plan.isActive && "opacity-60 grayscale"
+                        )}
+                    >
+                        {/* Popular Badge */}
+                        {plan.popular && (
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow-sm ring-4 ring-background">
+                                    <Sparkles className="h-3 w-3" />
+                                    Best Value
+                                </span>
                             </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col gap-4">
-                            <div>
-                                <span className="text-3xl font-bold">{plan.currency} {plan.price}</span>
-                                <span className="text-muted-foreground"> / {plan.interval}</span>
-                            </div>
+                        )}
 
-                            <div className="space-y-2 flex-1">
-                                {plan.features?.slice(0, 4).map((feature, i) => (
-                                    <div key={i} className="flex items-center text-sm">
-                                        <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
-                                        {feature}
-                                    </div>
-                                ))}
-                                {plan.features?.length > 4 && (
-                                    <p className="text-xs text-muted-foreground pl-6">
-                                        +{plan.features.length - 4} more features
-                                    </p>
-                                )}
+                        {/* Status Badge */}
+                        {!plan.isActive && (
+                            <div className="absolute top-4 right-4">
+                                <Badge variant="secondary" className="rounded-full px-2.5">Inacitve</Badge>
                             </div>
-                        </CardContent>
-                    </Card>
+                        )}
+
+                        <div className="mb-6">
+                            <h3 className="text-lg font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                {plan.name}
+                                {plan.interval === "year" && <Badge variant="outline" className="rounded-full text-[10px] h-5 px-2">Save 20%</Badge>}
+                            </h3>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-4xl font-bold tracking-tight">{plan.currency === "USD" ? "$" : plan.currency} {plan.price}</span>
+                                <span className="text-muted-foreground font-medium">/{plan.interval}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 font-mono">{plan.googleProductId}</p>
+                        </div>
+
+                        <div className="space-y-4 flex-1 mb-8">
+                            <div className="h-px bg-border/50" />
+                            <ul className="space-y-3">
+                                {plan.features?.slice(0, 5).map((feature, i) => (
+                                    <li key={i} className="flex items-start gap-3 text-sm">
+                                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                                        <span className="text-muted-foreground leading-tight">{feature}</span>
+                                    </li>
+                                ))}
+                                {plan.features && plan.features.length > 5 && (
+                                    <li className="text-xs text-muted-foreground pl-8 pt-1">
+                                        +{plan.features.length - 5} more benefits
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
+
+                        {isAdmin && (
+                            <div className="mt-auto pt-4 flex gap-3">
+                                <Button
+                                    onClick={() => handleOpenDialog(plan)}
+                                    className={cn(
+                                        "flex-1 rounded-xl h-11 font-medium shadow-none transition-transform active:scale-95",
+                                        plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                                    )}
+                                >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit Plan
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="rounded-xl h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                        setCurrentPlan(plan)
+                                        setIsDeleteDialogOpen(true)
+                                    }}
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 ))}
             </div>
 

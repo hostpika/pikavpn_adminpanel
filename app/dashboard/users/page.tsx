@@ -33,23 +33,25 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Users,
+  MoreHorizontal,
   Search,
-  Filter,
-  MoreVertical,
-  Trash2,
-  Eye,
-  Mail,
-  Download,
-  Ban,
   CheckCircle2,
-  Clock,
+  Ban,
   Crown,
-  Loader2,
+  Trash2,
+  Download,
+  Filter,
   Shield,
+  Clock,
   Zap,
-  Activity,
   UserCog,
+  Mail,
+  Eye,
+  Loader2,
+  Users,
+  XCircle,
+  Activity,
+  MoreVertical
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Removed direct import from user-service, using fetch now
@@ -88,7 +90,7 @@ export default function UsersPage() {
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showActionDialog, setShowActionDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
-  const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | null>(null)
+  const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium" | null>(null)
 
   const [actionForm, setActionForm] = useState({ duration: "30", reason: "" })
 
@@ -180,7 +182,7 @@ export default function UsersPage() {
     setShowDetailDialog(true)
   }
 
-  const openActionDialog = (user: UserData, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin") => {
+  const openActionDialog = (user: UserData, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium") => {
     setSelectedUser(user)
     setActionType(action)
     setShowActionDialog(true)
@@ -201,6 +203,9 @@ export default function UsersPage() {
       } else if (actionType === "grant") {
         payload.action = "set_plan"
         payload.payload = { plan: "premium" }
+      } else if (actionType === "revoke_premium") {
+        payload.action = "set_plan"
+        payload.payload = { plan: "free" }
       } else if (actionType === "make_admin") {
         payload.action = "set_role"
         payload.payload = { role: "admin" }
@@ -264,66 +269,66 @@ export default function UsersPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
+          <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Total Users</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.total}</p>
                 </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner">
                   <Users className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Active</p>
-                  <p className="text-2xl font-bold">{stats.active}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Active</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.active}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center shadow-inner">
                   <CheckCircle2 className="h-6 w-6 text-blue-500" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Premium</p>
-                  <p className="text-2xl font-bold">{stats.premium}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Premium</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.premium}</p>
                 </div>
-                <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center shadow-inner">
                   <Crown className="h-6 w-6 text-purple-500" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Trial</p>
-                  <p className="text-2xl font-bold">{stats.trial}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Trial</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.trial}</p>
                 </div>
-                <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center shadow-inner">
                   <Clock className="h-6 w-6 text-amber-500" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Suspended</p>
-                  <p className="text-2xl font-bold">{stats.suspended}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Suspended</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.suspended}</p>
                 </div>
-                <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center shadow-inner">
                   <Ban className="h-6 w-6 text-red-500" />
                 </div>
               </div>
@@ -331,7 +336,7 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl">
           <CardHeader className="pb-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex-1 flex flex-col sm:flex-row gap-3">
@@ -339,7 +344,7 @@ export default function UsersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users..."
-                    className="pl-9"
+                    className="pl-9 rounded-xl border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/20"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -532,13 +537,13 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="gap-2 bg-transparent">
+                <Button variant="outline" className="gap-2 bg-transparent rounded-xl border-dashed">
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
               </div>
             </div>
-          </CardHeader >
+          </CardHeader>
 
           <CardContent>
             {loading ? (
@@ -556,7 +561,7 @@ export default function UsersPage() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-2xl border overflow-hidden bg-background/50">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -575,7 +580,7 @@ export default function UsersPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                              <AvatarImage src={user.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${user.name}`} />
                               <AvatarFallback>
                                 {(user.name || "User")
                                   .split(" ")
@@ -633,7 +638,7 @@ export default function UsersPage() {
                                 View Details
                               </DropdownMenuItem>
 
-                              {/* Admin Actions Only */}
+                              {/* Admin Actions Only - Checked via role */}
                               {/* @ts-ignore - Check for role existence */}
                               {currentUser?.role === "admin" && (
                                 <>
@@ -646,9 +651,16 @@ export default function UsersPage() {
                                     <Crown className="mr-2 h-4 w-4" />
                                     Grant Premium
                                   </DropdownMenuItem>
+                                  {(user.tier === "premium" || user.status === "premium") && (
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "revoke_premium")}>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Remove Premium
+                                    </DropdownMenuItem>
+                                  )}
                                   {user.status !== "suspended" && (
                                     <DropdownMenuItem onClick={() => openActionDialog(user, "suspend")}>
                                       <Ban className="mr-2 h-4 w-4" />
+                                      Ban User
                                     </DropdownMenuItem>
                                   )}
                                   {user.status === "suspended" && (
@@ -689,12 +701,8 @@ export default function UsersPage() {
               </div>
             )}
           </CardContent>
-        </Card >
-
-        {/* Pagination Controls */}
-        {
-          filteredUsers.length > 0 && (
-            <div className="flex items-center justify-between">
+          {filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between p-6 pt-0">
               <p className="text-sm text-muted-foreground">
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
               </p>
@@ -708,7 +716,6 @@ export default function UsersPage() {
                   Previous
                 </Button>
                 <div className="flex items-center gap-1">
-
                   <span className="text-sm font-medium mx-2">
                     Page {currentPage} of {totalPages}
                   </span>
@@ -723,163 +730,166 @@ export default function UsersPage() {
                 </Button>
               </div>
             </div>
-          )
-        }
-      </div >
-
-      {/* User Detail Dialog */}
-      < Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog} >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-            <DialogDescription>Comprehensive user account information</DialogDescription>
-          </DialogHeader>
-          {selectedUser && (
-            <Tabs defaultValue="account" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="account">Account</TabsTrigger>
-                <TabsTrigger value="usage">Usage</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
-              </TabsList>
-              <TabsContent value="account" className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={selectedUser.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="text-xl">
-                      {(selectedUser.name || "User")
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-                  </div>
-                  <Badge variant="outline" className={getStatusColor(selectedUser.status)}>
-                    {selectedUser.status}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Subscription Tier</Label>
-                    <div className="font-semibold capitalize">{selectedUser.tier}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Registered</Label>
-                    <div className="font-semibold">{selectedUser.registrationDate}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Last Login</Label>
-                    <div className="font-semibold">{selectedUser.lastLogin}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Device Count</Label>
-                    <div className="font-semibold">{selectedUser.deviceCount} devices</div>
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="usage" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-2">Total Connection Time</p>
-                        <p className="text-3xl font-bold">{selectedUser.totalConnectionTime}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-2">Data Transferred</p>
-                        <p className="text-3xl font-bold">{selectedUser.dataTransferred}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-              <TabsContent value="history" className="space-y-4">
-                <p className="text-sm text-muted-foreground">Connection history and activity logs would appear here.</p>
-              </TabsContent>
-            </Tabs>
           )}
-        </DialogContent>
-      </Dialog >
+        </Card>
 
-      {/* Action Dialog */}
-      < Dialog open={showActionDialog} onOpenChange={setShowActionDialog} >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {actionType === "suspend" && "Suspend User Account"}
-              {actionType === "grant" && "Grant Premium Access"}
-              {actionType === "delete" && "Delete User Account"}
-            </DialogTitle>
-            <DialogDescription>
-              {actionType === "suspend" &&
-                "This will prevent the user from accessing their account. You can unsuspend them later."}
-              {actionType === "grant" && "Grant this user complimentary premium access for a specified duration."}
-              {actionType === "delete" && "This action is irreversible and will permanently delete all user data."}
-              {actionType === "make_admin" && "This user will have full access to the dashboard."}
-              {actionType === "remove_admin" && "This user will lose admin privileges."}
-              {actionType === "unsuspend" && "This user will be able to access the app again."}
-            </DialogDescription>
-          </DialogHeader>
+        {/* User Detail Dialog */}
+        <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>Comprehensive user account information</DialogDescription>
+            </DialogHeader>
+            {selectedUser && (
+              <Tabs defaultValue="account" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="account">Account</TabsTrigger>
+                  <TabsTrigger value="usage">Usage</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
+                </TabsList>
+                <TabsContent value="account" className="space-y-4">
+                  <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={selectedUser.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${selectedUser.name}`} />
+                      <AvatarFallback className="text-xl">
+                        {(selectedUser.name || "User")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                    </div>
+                    <Badge variant="outline" className={getStatusColor(selectedUser.status)}>
+                      {selectedUser.status}
+                    </Badge>
+                  </div>
 
-          <div className="space-y-4 py-4">
-            {actionType === "grant" && (
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration (days)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={actionForm.duration}
-                  onChange={(e) => setActionForm({ ...actionForm, duration: e.target.value })}
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Subscription Tier</Label>
+                      <div className="font-semibold capitalize">{selectedUser.tier}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Registered</Label>
+                      <div className="font-semibold">{selectedUser.registrationDate}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Last Login</Label>
+                      <div className="font-semibold">{selectedUser.lastLogin}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Device Count</Label>
+                      <div className="font-semibold">{selectedUser.deviceCount} devices</div>
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="usage" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground mb-2">Total Connection Time</p>
+                          <p className="text-3xl font-bold">{selectedUser.totalConnectionTime}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground mb-2">Data Transferred</p>
+                          <p className="text-3xl font-bold">{selectedUser.dataTransferred}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+                <TabsContent value="history" className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Connection history and activity logs would appear here.</p>
+                </TabsContent>
+              </Tabs>
             )}
+          </DialogContent>
+        </Dialog>
 
-            {(actionType === "suspend" || actionType === "grant") && (
-              <div className="space-y-2">
-                <Label htmlFor="reason">Reason / Notes</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Enter reason for this action..."
-                  value={actionForm.reason}
-                  onChange={(e) => setActionForm({ ...actionForm, reason: e.target.value })}
-                />
-              </div>
-            )}
+        {/* Action Dialog */}
+        <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {actionType === "suspend" && "Suspend User Account"}
+                {actionType === "grant" && "Grant Premium Access"}
+                {actionType === "delete" && "Delete User Account"}
+                {actionType === "revoke_premium" && "Remove Premium Access"}
+              </DialogTitle>
+              <DialogDescription>
+                {actionType === "suspend" &&
+                  "This will prevent the user from accessing their account. You can unsuspend them later."}
+                {actionType === "grant" && "Grant this user complimentary premium access for a specified duration."}
+                {actionType === "delete" && "This action is irreversible and will permanently delete all user data."}
+                {actionType === "make_admin" && "This user will have full access to the dashboard."}
+                {actionType === "remove_admin" && "This user will lose admin privileges."}
+                {actionType === "unsuspend" && "This user will be able to access the app again."}
+                {actionType === "revoke_premium" && "This will revert the user to the free tier immediately."}
+              </DialogDescription>
+            </DialogHeader>
 
-            {actionType === "delete" && selectedUser && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                <p className="text-sm text-destructive font-semibold mb-2">Warning: This cannot be undone</p>
-                <p className="text-sm text-muted-foreground">
-                  Please type <code className="bg-background px-1 py-0.5 rounded">{selectedUser.email}</code> to confirm
-                  deletion.
-                </p>
-              </div>
-            )}
-          </div>
+            <div className="space-y-4 py-4">
+              {actionType === "grant" && (
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (days)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={actionForm.duration}
+                    onChange={(e) => setActionForm({ ...actionForm, duration: e.target.value })}
+                  />
+                </div>
+              )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActionDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant={actionType === "delete" ? "destructive" : "default"} onClick={handleAction}>
-              {actionType === "suspend" && "Suspend Account"}
-              {actionType === "unsuspend" && "Unsuspend Account"}
-              {actionType === "grant" && "Grant Premium"}
-              {actionType === "delete" && "Delete Account"}
-              {actionType === "make_admin" && "Make Admin"}
-              {actionType === "remove_admin" && "Remove Admin"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog >
+              {(actionType === "suspend" || actionType === "grant") && (
+                <div className="space-y-2">
+                  <Label htmlFor="reason">Reason / Notes</Label>
+                  <Textarea
+                    id="reason"
+                    placeholder="Enter reason for this action..."
+                    value={actionForm.reason}
+                    onChange={(e) => setActionForm({ ...actionForm, reason: e.target.value })}
+                  />
+                </div>
+              )}
 
+              {actionType === "delete" && selectedUser && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <p className="text-sm text-destructive font-semibold mb-2">Warning: This cannot be undone</p>
+                  <p className="text-sm text-muted-foreground">
+                    Please type <code className="bg-background px-1 py-0.5 rounded">{selectedUser.email}</code> to confirm
+                    deletion.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowActionDialog(false)}>
+                Cancel
+              </Button>
+              <Button variant={actionType === "delete" ? "destructive" : "default"} onClick={handleAction}>
+                {actionType === "suspend" && "Suspend Account"}
+                {actionType === "unsuspend" && "Unsuspend Account"}
+                {actionType === "grant" && "Grant Premium"}
+                {actionType === "delete" && "Delete Account"}
+                {actionType === "make_admin" && "Make Admin"}
+                {actionType === "remove_admin" && "Remove Admin"}
+                {actionType === "revoke_premium" && "Remove Premium"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+      </div>
     </>
   )
 }

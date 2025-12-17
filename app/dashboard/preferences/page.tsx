@@ -1,30 +1,100 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { Bell, Palette, Globe, Clock, Database, Download, Trash2, Check } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Bell, Palette, Globe, Clock, Database, Download, Trash2, Check, Zap, Monitor } from "lucide-react"
 import { usePreferences } from "@/components/preferences-provider"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/auth-provider"
+import { fetchWithAuth } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 
 export default function PreferencesPage() {
   const { colorScheme, setColorScheme, sidebarDensity, setSidebarDensity } = usePreferences()
   const { theme, setTheme } = useTheme()
+  const { user } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
+  // Local state for non-global preferences
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
   const [serverAlerts, setServerAlerts] = useState(true)
   const [userAlerts, setUserAlerts] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [refreshInterval, setRefreshInterval] = useState([30])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Load ALL preferences (including local ones) from API on mount
+  useEffect(() => {
+    if (!user) return
+
+    const loadSettings = async () => {
+      try {
+        const res = await fetchWithAuth("/api/preferences")
+        if (res.ok) {
+          const data = await res.json()
+          const p = data.preferences
+          if (p) {
+            if (p.emailNotifications !== undefined) setEmailNotifications(p.emailNotifications)
+            if (p.pushNotifications !== undefined) setPushNotifications(p.pushNotifications)
+            if (p.serverAlerts !== undefined) setServerAlerts(p.serverAlerts)
+            if (p.userAlerts !== undefined) setUserAlerts(p.userAlerts)
+            if (p.autoRefresh !== undefined) setAutoRefresh(p.autoRefresh)
+            if (p.refreshInterval !== undefined) setRefreshInterval(p.refreshInterval)
+            // Provider handles colorScheme/density separately via its own sync
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load settings", e)
+      }
+    }
+    loadSettings()
+  }, [user])
+
+  // Helper to save any preference change
+  const saveSetting = async (key: string, value: any) => {
+    try {
+      // Optimistic update handled by local setters
+      // Save to cloud
+      await fetchWithAuth("/api/preferences", {
+        method: "POST",
+        body: JSON.stringify({ preferences: { [key]: value } })
+      })
+    } catch (e) {
+      console.error(`Failed to save ${key}`, e)
+      toast({
+        title: "Error saving setting",
+        description: "Could not save your changes to the cloud.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Wrappers to update state AND save
+  const handleEmailChange = (checked: boolean) => { setEmailNotifications(checked); saveSetting("emailNotifications", checked); }
+  const handlePushChange = (checked: boolean) => { setPushNotifications(checked); saveSetting("pushNotifications", checked); }
+  const handleServerAlertsChange = (checked: boolean) => { setServerAlerts(checked); saveSetting("serverAlerts", checked); }
+  const handleUserAlertsChange = (checked: boolean) => { setUserAlerts(checked); saveSetting("userAlerts", checked); }
+  const handleAutoRefreshChange = (checked: boolean) => { setAutoRefresh(checked); saveSetting("autoRefresh", checked); }
+  const handleRefreshIntervalChange = (val: number[]) => { setRefreshInterval(val); saveSetting("refreshInterval", val); }
 
   const colorSchemes = [
     { id: "blue" as const, name: "Blue", gradient: "from-blue-500 to-cyan-500" },
@@ -34,8 +104,9 @@ export default function PreferencesPage() {
     { id: "pink" as const, name: "Pink", gradient: "from-pink-500 to-rose-500" },
   ]
 
-  return (
+  if (!mounted) return null
 
+  return (
     <div className="space-y-6 max-w-5xl">
       {/* Page Header */}
       <div>
@@ -59,7 +130,7 @@ export default function PreferencesPage() {
                 <Label className="text-base">Email Notifications</Label>
                 <p className="text-sm text-muted-foreground">Receive notifications via email</p>
               </div>
-              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+              <Switch checked={emailNotifications} onCheckedChange={handleEmailChange} />
             </div>
 
             <Separator />
@@ -69,7 +140,7 @@ export default function PreferencesPage() {
                 <Label className="text-base">Push Notifications</Label>
                 <p className="text-sm text-muted-foreground">Receive browser push notifications</p>
               </div>
-              <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
+              <Switch checked={pushNotifications} onCheckedChange={handlePushChange} />
             </div>
 
             <Separator />
@@ -79,7 +150,7 @@ export default function PreferencesPage() {
                 <Label className="text-base">Server Alerts</Label>
                 <p className="text-sm text-muted-foreground">Get notified about server status changes</p>
               </div>
-              <Switch checked={serverAlerts} onCheckedChange={setServerAlerts} />
+              <Switch checked={serverAlerts} onCheckedChange={handleServerAlertsChange} />
             </div>
 
             <Separator />
@@ -91,26 +162,8 @@ export default function PreferencesPage() {
                   Notifications for new user registrations and activities
                 </p>
               </div>
-              <Switch checked={userAlerts} onCheckedChange={setUserAlerts} />
+              <Switch checked={userAlerts} onCheckedChange={handleUserAlertsChange} />
             </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-3">
-            <Label className="text-base">Email Digest Frequency</Label>
-            <Select defaultValue="daily">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="realtime">Real-time</SelectItem>
-                <SelectItem value="hourly">Hourly</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="never">Never</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -127,7 +180,7 @@ export default function PreferencesPage() {
         <CardContent className="space-y-6">
           <div className="space-y-3">
             <Label className="text-base">Theme</Label>
-            <RadioGroup value={theme} onValueChange={setTheme} className="grid grid-cols-3 gap-4">
+            <RadioGroup value={theme} onValueChange={setTheme} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Label
                 htmlFor="light"
                 className="flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
@@ -199,79 +252,6 @@ export default function PreferencesPage() {
         </CardContent>
       </Card>
 
-      {/* Regional Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Regional Settings
-          </CardTitle>
-          <CardDescription>Set your timezone, language, and date format preferences</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <Label className="text-base">Language</Label>
-              <Select defaultValue="en">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="de">Deutsch</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-base">Timezone</Label>
-              <Select defaultValue="utc">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utc">UTC (GMT+0)</SelectItem>
-                  <SelectItem value="est">Eastern Time (GMT-5)</SelectItem>
-                  <SelectItem value="pst">Pacific Time (GMT-8)</SelectItem>
-                  <SelectItem value="cet">Central European (GMT+1)</SelectItem>
-                  <SelectItem value="jst">Japan Standard (GMT+9)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-base">Date Format</Label>
-              <Select defaultValue="mdy">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
-                  <SelectItem value="dmy">DD/MM/YYYY</SelectItem>
-                  <SelectItem value="ymd">YYYY-MM-DD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-base">Time Format</Label>
-              <Select defaultValue="12">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12">12-hour (AM/PM)</SelectItem>
-                  <SelectItem value="24">24-hour</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Dashboard Settings */}
       <Card>
         <CardHeader>
@@ -287,7 +267,7 @@ export default function PreferencesPage() {
               <Label className="text-base">Auto Refresh</Label>
               <p className="text-sm text-muted-foreground">Automatically refresh dashboard data</p>
             </div>
-            <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+            <Switch checked={autoRefresh} onCheckedChange={handleAutoRefreshChange} />
           </div>
 
           {autoRefresh && (
@@ -300,7 +280,7 @@ export default function PreferencesPage() {
                 </div>
                 <Slider
                   value={refreshInterval}
-                  onValueChange={setRefreshInterval}
+                  onValueChange={handleRefreshIntervalChange}
                   min={10}
                   max={120}
                   step={10}
@@ -356,9 +336,10 @@ export default function PreferencesPage() {
       {/* Save Button */}
       <div className="flex justify-end gap-2">
         <Button variant="outline">Reset to Defaults</Button>
-        <Button>Save Preferences</Button>
+        <Button onClick={() => toast({ title: "Preferences Saved", description: "Your settings have been saved to the cloud." })}>
+          Save Preferences
+        </Button>
       </div>
     </div>
-
   )
 }

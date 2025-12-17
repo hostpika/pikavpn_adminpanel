@@ -168,23 +168,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (collapsed && hasChildren) {
       // In collapsed mode, we can show a tooltip or just link to the main href (which redirects)
-      // For better UX, we could use a Dropdown, but for now we'll stick to the simpler link behavior
-      // which will redirect to the first sub-page.
       return (
         <Link
           href={item.href}
           className={cn(
-            "flex items-center rounded-lg px-3 font-medium transition-all duration-200 hover:scale-105 active:scale-95",
+            "flex items-center rounded-xl px-3 font-medium transition-all duration-200 hover:scale-105 active:scale-95 group relative overflow-hidden",
             density.py,
             density.gap,
             density.textSize,
             isActive
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground",
           )}
           onClick={() => setMobileOpen(false)}
         >
           <item.icon className={cn("flex-shrink-0", density.iconSize, "mx-auto")} />
+          {isActive && collapsed && <div className="absolute inset-y-0 left-0 w-1 bg-primary/20" />}
         </Link>
       )
     }
@@ -198,41 +197,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             else setMobileOpen(false)
           }}
           className={cn(
-            "flex items-center rounded-lg px-3 font-medium transition-all duration-200",
+            "flex items-center rounded-xl px-3 font-medium transition-all duration-200 group relative",
             collapsed ? "justify-center" : "justify-between",
             density.py,
             density.gap,
             density.textSize,
             isActive
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground",
           )}
         >
-          <div className={cn("flex items-center gap-2", collapsed && "justify-center")}>
-            <item.icon className={cn("flex-shrink-0", density.iconSize)} />
+          <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
+            {/* Icon with subtle background for active state if needed, or just clean */}
+            <item.icon className={cn("flex-shrink-0 transition-transform duration-200 group-hover:scale-110", density.iconSize)} />
             {!collapsed && <span>{item.name}</span>}
           </div>
           {!collapsed && hasChildren && (
-            <ChevronDown className={cn("h-4 w-4 transition-transform ml-auto", isExpanded ? "rotate-180" : "")} />
+            <ChevronDown className={cn("h-4 w-4 transition-transform ml-auto text-muted-foreground/70", isExpanded ? "rotate-180" : "")} />
           )}
         </Link>
 
 
-        {hasChildren && isExpanded && (
-          <div className="ml-4 pl-4 border-l space-y-1 animate-slide-down">
+        {hasChildren && isExpanded && !collapsed && (
+          <div className="ml-4 pl-3 space-y-1 animate-slide-down relative">
+            {/* Decoration line for hierarchy (optional, cleaner without) */}
+            <div className="absolute left-0 top-1 bottom-1 w-px bg-border/40" />
             {item.children?.map(child => (
               <Link
                 key={child.href}
                 href={child.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center rounded-md py-2 px-3 text-sm transition-colors",
+                  "flex items-center rounded-lg py-2 pl-3 pr-2 text-sm transition-colors relative",
                   pathname === child.href
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "text-primary font-semibold bg-primary/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-neutral-100/80 dark:hover:bg-neutral-800/50"
                 )}
               >
-                {child.icon && <child.icon className="h-4 w-4 mr-2" />}
+                {/* Small indicator for active */}
+                {pathname === child.href && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-r-full" />}
+                {child.icon ? <child.icon className="h-4 w-4 mr-2 opacity-70" /> : <div className="w-1" />}
                 {child.name}
               </Link>
             ))}
@@ -246,32 +250,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <>
       {!hideHeader && (
         <div className={cn("flex h-16 items-center px-4 border-b", collapsed ? "justify-center" : "justify-between")}>
-          {!collapsed && (
-            <div className="flex items-center gap-2 animate-fade-in">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Shield className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold gradient-text">SuperVPN</span>
-            </div>
-          )}
-          {collapsed && (
-            <div
-              className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center cursor-pointer animate-scale-in hover:scale-105 transition-transform"
-              onClick={() => setCollapsed(false)}
-            >
+          <div className="flex items-center gap-2 animate-fade-in">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
               <Shield className="h-6 w-6 text-white" />
             </div>
-          )}
-          {!collapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCollapsed(!collapsed)}
-              className="hidden lg:flex h-8 w-8 hover:scale-110 active:scale-95"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
+            {!collapsed && <span className="text-xl font-bold gradient-text">SuperVPN</span>}
+          </div>
         </div>
       )}
 
@@ -339,6 +323,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           collapsed ? "w-20" : "w-64",
         )}
       >
+        <Button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-6 z-20 h-6 w-6 rounded-full border shadow-md p-0 bg-background hover:bg-accent text-muted-foreground hover:text-foreground hidden lg:flex items-center justify-center"
+          variant="ghost"
+        >
+          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </Button>
         <SidebarContent />
       </aside>
 

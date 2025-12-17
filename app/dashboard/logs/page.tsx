@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon, Search, Filter, RefreshCw, FileText } from "lucide-react"
+import { Calendar as CalendarIcon, Search, Filter, RefreshCw, FileText, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,10 +48,20 @@ export default function LogsPage() {
     const [adminFilter, setAdminFilter] = useState("")
     const [date, setDate] = useState<Date | undefined>(undefined)
 
-    const loadLogs = async () => {
+    // Pagination state
+    const [cursors, setCursors] = useState<(string | null)[]>([null])
+    const [currentPage, setCurrentPage] = useState(0)
+    const [hasNextPage, setHasNextPage] = useState(false)
+    const LIMIT = 20
+
+    const loadLogs = async (cursor: string | null = null) => {
         try {
             setLoading(true)
-            let query = "/api/logs?limit=100"
+            let query = `/api/logs?limit=${LIMIT}`
+
+            if (cursor) {
+                query += `&lastTimestamp=${cursor}`
+            }
 
             if (actionFilter && actionFilter !== "all") {
                 query += `&action=${actionFilter}`
@@ -72,6 +82,18 @@ export default function LogsPage() {
             }
             const data = await res.json()
             setLogs(data.logs)
+            setHasNextPage(data.hasMore)
+
+            // If there's a next page, ensure we have the cursor for it stored
+            if (data.hasMore && data.nextCursor) {
+                setCursors(prev => {
+                    const newCursors = [...prev]
+                    // We are currently on 'currentPage'. The cursor to fetch THIS page was cursors[currentPage].
+                    // The cursor to fetch the NEXT page (currentPage + 1) is data.nextCursor.
+                    newCursors[currentPage + 1] = data.nextCursor
+                    return newCursors
+                })
+            }
         } catch (error) {
             console.error("Error loading logs:", error)
             toast({
@@ -84,14 +106,33 @@ export default function LogsPage() {
         }
     }
 
+    const handleNext = () => {
+        if (hasNextPage) {
+            const nextPage = currentPage + 1
+            setCurrentPage(nextPage)
+            loadLogs(cursors[nextPage])
+        }
+    }
+
+    const handlePrevious = () => {
+        if (currentPage > 0) {
+            const prevPage = currentPage - 1
+            setCurrentPage(prevPage)
+            loadLogs(cursors[prevPage])
+        }
+    }
+
+    // Reset pagination when filters change
     useEffect(() => {
-        loadLogs()
-    }, [actionFilter, date]) // adminFilter triggers on enter/blur or separate search button usually, but here effect is ok if debounced. 
-    // For simplicity, we'll make adminFilter search trigger on a button or blur, but here let's just trigger on mount and filter changes.
-    // Actually, let's add a manual refresh button or effect on Enter for text input.
+        setCurrentPage(0)
+        setCursors([null])
+        loadLogs(null)
+    }, [actionFilter, date]) // adminFilter triggers via handleSearch
 
     const handleSearch = () => {
-        loadLogs()
+        setCurrentPage(0)
+        setCursors([null])
+        loadLogs(null)
     }
 
     const getActionColor = (action: string) => {
@@ -110,7 +151,7 @@ export default function LogsPage() {
 
             <AdminAlert />
 
-            <Card>
+            <Card className="rounded-[2rem] border-0 shadow-sm bg-card/50 backdrop-blur-xl dark:border dark:border-white/10 dark:bg-white/5">
                 <CardHeader>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
@@ -118,7 +159,7 @@ export default function LogsPage() {
                             <CardDescription>Recent actions performed by administrators.</CardDescription>
                         </div>
                         <div className="flex gap-2 items-center">
-                            <Button variant="outline" size="sm" onClick={loadLogs} title="Refresh Logs">
+                            <Button variant="outline" size="sm" onClick={() => loadLogs(cursors[currentPage])} title="Refresh Logs" className="rounded-full h-8 w-8 p-0">
                                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
                             </Button>
                         </div>
@@ -131,7 +172,7 @@ export default function LogsPage() {
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search by Admin Email..."
-                                    className="pl-8"
+                                    className="pl-8 rounded-xl border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/20"
                                     value={adminFilter}
                                     onChange={(e) => setAdminFilter(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -139,7 +180,7 @@ export default function LogsPage() {
                             </div>
                         </div>
                         <Select value={actionFilter} onValueChange={setActionFilter}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-[180px] rounded-xl border-dashed">
                                 <SelectValue placeholder="Filter by Action" />
                             </SelectTrigger>
                             <SelectContent>
@@ -157,7 +198,7 @@ export default function LogsPage() {
                                 <Button
                                     variant={"outline"}
                                     className={cn(
-                                        "w-[240px] justify-start text-left font-normal",
+                                        "w-[240px] justify-start text-left font-normal rounded-xl border-dashed",
                                         !date && "text-muted-foreground"
                                     )}
                                 >
@@ -174,10 +215,10 @@ export default function LogsPage() {
                                 />
                             </PopoverContent>
                         </Popover>
-                        <Button onClick={handleSearch}>Filter</Button>
+                        <Button onClick={handleSearch} className="rounded-xl shadow-sm">Filter</Button>
                     </div>
 
-                    <div className="rounded-md border">
+                    <div className="rounded-2xl border overflow-hidden bg-background/50">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -218,7 +259,9 @@ export default function LogsPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">{log.targetName || "-"}</span>
+                                                    <span className="font-medium">
+                                                        {(typeof log.targetName === 'string' ? log.targetName : (log.targetName as any)?.name) || "-"}
+                                                    </span>
                                                     <span className="text-xs text-muted-foreground">{log.targetId ? log.targetId.substring(0, 8) + '...' : ''}</span>
                                                 </div>
                                             </TableCell>
@@ -230,6 +273,35 @@ export default function LogsPage() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="flex items-center justify-between py-4">
+                        <div className="text-sm text-muted-foreground">
+                            Page {currentPage + 1}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePrevious}
+                                disabled={currentPage === 0 || loading}
+                                className="rounded-xl h-8 px-3"
+                            >
+                                <ChevronLeft className="mr-1 h-4 w-4" />
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleNext}
+                                disabled={!hasNextPage || loading}
+                                className="rounded-xl h-8 px-3"
+                            >
+                                Next
+                                <ChevronRight className="ml-1 h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

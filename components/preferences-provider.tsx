@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
+import { useAuth } from "@/components/auth-provider"
+import { fetchWithAuth } from "@/lib/api-client"
 
 type ColorScheme = "blue" | "purple" | "green" | "orange" | "pink"
 type SidebarDensity = "compact" | "comfortable" | "spacious"
@@ -18,6 +20,7 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const [colorScheme, setColorSchemeState] = useState<ColorScheme>("blue")
   const [sidebarDensity, setSidebarDensityState] = useState<SidebarDensity>("comfortable")
+  const { user } = useAuth()
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -33,15 +36,62 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     }
   }, [])
 
+  // Sync with Cloud when user logs in
+  useEffect(() => {
+    if (!user) return
+
+    const fetchPreferences = async () => {
+      try {
+        const res = await fetchWithAuth("/api/preferences")
+        if (res.ok) {
+          const data = await res.json()
+          const prefs = data.preferences
+          if (prefs) {
+            if (prefs.colorScheme) {
+              setColorSchemeState(prefs.colorScheme)
+              applyColorScheme(prefs.colorScheme)
+              localStorage.setItem("colorScheme", prefs.colorScheme)
+            }
+            if (prefs.sidebarDensity) {
+              setSidebarDensityState(prefs.sidebarDensity)
+              localStorage.setItem("sidebarDensity", prefs.sidebarDensity)
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to sync preferences", error)
+      }
+    }
+
+    fetchPreferences()
+  }, [user])
+
+  const saveToCloud = async (newPrefs: any) => {
+    if (!user) return
+    try {
+      // We get current state, but better to pass the new change
+      // Since react state update is async, we should be passed the full new object or specific field
+      // For simplicity, we just PUSH the specific field update effectively
+      await fetchWithAuth("/api/preferences", {
+        method: "POST",
+        body: JSON.stringify({ preferences: newPrefs })
+      })
+    } catch (e) {
+      console.error("Failed to save preference to cloud", e)
+    }
+  }
+
   const setColorScheme = (scheme: ColorScheme) => {
     setColorSchemeState(scheme)
     localStorage.setItem("colorScheme", scheme)
     applyColorScheme(scheme)
+    saveToCloud({ colorScheme: scheme })
   }
 
   const setSidebarDensity = (density: SidebarDensity) => {
     setSidebarDensityState(density)
     localStorage.setItem("sidebarDensity", density)
+    saveToCloud({ sidebarDensity: density })
   }
 
   const applyColorScheme = (scheme: ColorScheme) => {

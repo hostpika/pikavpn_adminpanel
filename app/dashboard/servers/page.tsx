@@ -171,7 +171,7 @@ export default function ServersPage() {
 
         <AdminAlert />
 
-        <Card>
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader className="pb-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex-1 flex flex-col sm:flex-row gap-3">
@@ -179,7 +179,7 @@ export default function ServersPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search servers..."
-                    className="pl-9"
+                    className="pl-9 rounded-xl border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/20"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -187,7 +187,7 @@ export default function ServersPage() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 bg-transparent">
+                    <Button variant="outline" className="gap-2 bg-transparent rounded-xl border-dashed">
                       <Filter className="h-4 w-4" />
                       Filters
                       {(statusFilter.length > 0 || tierFilter.length > 0) && (
@@ -265,11 +265,11 @@ export default function ServersPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex rounded-lg border p-1">
+                <div className="flex rounded-xl border p-1 bg-secondary/30">
                   <Button
                     variant={viewMode === "table" ? "secondary" : "ghost"}
                     size="sm"
-                    className="px-2.5"
+                    className="px-2.5 rounded-lg shadow-sm"
                     onClick={() => setViewMode("table")}
                   >
                     <List className="h-4 w-4" />
@@ -277,7 +277,7 @@ export default function ServersPage() {
                   <Button
                     variant={viewMode === "grid" ? "secondary" : "ghost"}
                     size="sm"
-                    className="px-2.5"
+                    className="px-2.5 rounded-lg shadow-sm"
                     onClick={() => setViewMode("grid")}
                   >
                     <Grid3x3 className="h-4 w-4" />
@@ -285,7 +285,7 @@ export default function ServersPage() {
                 </div>
                 <div className="flex gap-2 w-full lg:w-auto">
                   <Link href="/dashboard/servers/add">
-                    <Button className="w-full lg:w-auto" disabled={!isAdmin}>
+                    <Button className="w-full lg:w-auto rounded-xl shadow-lg hover:shadow-primary/25" disabled={!isAdmin}>
                       <Plus className="mr-2 h-4 w-4" /> Add Server
                     </Button>
                   </Link>
@@ -308,7 +308,7 @@ export default function ServersPage() {
                 )}
               </div>
             ) : viewMode === "table" ? (
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-2xl border overflow-hidden bg-background/50">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -412,7 +412,7 @@ export default function ServersPage() {
               // Grid View
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredServers.map((server) => (
-                  <Card key={server.id} className="overflow-hidden">
+                  <Card key={server.id} className="overflow-hidden rounded-[1.5rem] border-0 shadow-sm hover:shadow-md transition-all bg-card/80 hover:-translate-y-1 dark:border dark:border-white/10 dark:bg-white/5">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-3xl">{server.flag}</span>

@@ -130,19 +130,19 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat, index) => (
-          <Card key={index} className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+          <Card key={index} className="border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-card/50 backdrop-blur-xl rounded-[2rem] dark:border dark:border-white/10 dark:bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
               <div
-                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}
+                className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-inner`}
               >
-                <stat.icon className="h-5 w-5 text-white" />
+                <stat.icon className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-1">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500 font-semibold">{stat.change}</span> from last period
+              <div className="text-4xl font-bold mb-1 tracking-tight">{stat.value}</div>
+              <p className="text-xs text-muted-foreground font-medium">
+                <span className="text-emerald-500 font-bold">{stat.change}</span> from last period
               </p>
             </CardContent>
           </Card>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Connection Activity */}
-        <Card className="border-0 shadow-md min-h-[400px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] min-h-[400px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle>Connection Activity</CardTitle>
             <CardDescription>Active VPN connections over the last 24 hours</CardDescription>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Server Load */}
-        <Card className="border-0 shadow-md min-h-[400px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] min-h-[400px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle>Server Load Distribution</CardTitle>
             <CardDescription>Current load across top server locations</CardDescription>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* User Growth */}
-        <Card className="border-0 shadow-md lg:col-span-2 min-h-[400px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] lg:col-span-2 min-h-[400px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle>User Growth Trend</CardTitle>
             <CardDescription>Free vs Premium user acquisition over time</CardDescription>
@@ -259,7 +259,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions & System Status */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="border-0 shadow-md min-h-[280px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] min-h-[280px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
@@ -276,7 +276,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-md min-h-[280px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] min-h-[280px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-secondary" />
@@ -293,7 +293,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-md min-h-[280px]">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-xl rounded-[2rem] min-h-[280px] dark:border dark:border-white/10 dark:bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-accent" />

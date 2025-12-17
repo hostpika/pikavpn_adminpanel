@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         const res = await adminFirestore.collection("plans").add(planData);
 
         const admin = await getAdminFromRequest(request);
-        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "CREATE", "SUBSCRIPTION", `Created plan ${body.name}`, res.id, planData);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "CREATE", "SUBSCRIPTION", `Created plan ${body.name}`, res.id, body.name, planData);
 
         return NextResponse.json({ id: res.id, ...planData }, { status: 201 });
     } catch (error) {
@@ -59,7 +59,7 @@ export async function PUT(request: Request) {
         });
 
         const admin = await getAdminFromRequest(request);
-        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "UPDATE", "SUBSCRIPTION", `Updated plan ${data.name || id}`, id, data);
+        await logAdminAction(admin?.uid || "sys", admin?.email || "sys", "UPDATE", "SUBSCRIPTION", `Updated plan ${data.name || id}`, id, data.name || id, data);
 
         return NextResponse.json({ success: true });
     } catch (error) {
