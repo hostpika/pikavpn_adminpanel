@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -185,7 +185,7 @@ export default function UsersPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
@@ -658,6 +658,7 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+
+    </>
   )
 }

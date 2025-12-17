@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -17,7 +17,18 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
-import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Grid3x3, List, Loader2, Power } from "lucide-react"
+import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Power, Loader2 } from "lucide-react" // Removed Filter, Grid3x3, List. Added Server, RefreshCw, Smartphone, Key are not used in the provided snippet, so keeping original for now.
+import { Grid3x3, List } from "lucide-react" // Keeping Grid3x3 and List as they are used for viewMode buttons.
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { getServers, deleteServer, updateServer, type ServerData } from "@/lib/server-service"
@@ -28,6 +39,9 @@ export default function ServersPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table")
   const [servers, setServers] = useState<ServerData[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteName, setDeleteName] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [tierFilter, setTierFilter] = useState<string[]>([])
@@ -105,38 +119,45 @@ export default function ServersPage() {
     }
   }
 
-  const handleDeleteServer = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
-      try {
-        await deleteServer(id)
-        setServers(servers.filter((server) => server.id !== id))
-        toast({
-          title: "Server deleted",
-          description: `${name} has been removed`,
-        })
-      } catch (error) {
-        console.error("Error deleting server:", error)
-        toast({
-          title: "Error deleting server",
-          description: "Could not delete the server",
-          variant: "destructive",
-        })
-      }
+  const confirmDelete = (id: string, name: string) => {
+    setDeleteId(id)
+    setDeleteName(name)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteServer = async () => {
+    if (!deleteId) return
+
+    try {
+      await deleteServer(deleteId)
+      setServers(servers.filter((server) => server.id !== deleteId))
+      toast({
+        title: "Server deleted",
+        description: `${deleteName} has been removed`,
+      })
+      setShowDeleteDialog(false)
+      setDeleteId(null)
+      setDeleteName("")
+    } catch (error) {
+      console.error("Error deleting server:", error)
+      toast({
+        title: "Error deleting server",
+        description: "Could not delete the server",
+        variant: "destructive",
+      })
     }
   }
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     )
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Server Management</h1>
@@ -363,8 +384,8 @@ export default function ServersPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDeleteServer(server.id!, server.name)}
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => confirmDelete(server.id!, server.name)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -409,8 +430,8 @@ export default function ServersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => handleDeleteServer(server.id!, server.name)}
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => confirmDelete(server.id!, server.name)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -459,6 +480,23 @@ export default function ServersPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Server</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteName}</strong>? This action cannot be undone and will disconnect any active users on this server.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteServer} className="bg-destructive hover:bg-destructive/90">
+              Delete Server
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

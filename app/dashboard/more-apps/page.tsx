@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +18,16 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, ExternalLink, Edit, Trash2, Smartphone } from "lucide-react"
 import Image from "next/image"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type AppType = {
   id: string
@@ -57,6 +67,8 @@ export default function MoreAppsPage() {
   const [apps, setApps] = useState<AppType[]>(mockApps)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppType | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -87,10 +99,15 @@ export default function MoreAppsPage() {
     resetForm()
   }
 
-  const handleDeleteApp = (id: string) => {
-    if (confirm("Are you sure you want to delete this app?")) {
-      setApps(apps.filter((app) => app.id !== id))
-    }
+  const confirmDelete = (id: string) => {
+    setDeleteId(id)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteApp = () => {
+    if (!deleteId) return
+    setApps(apps.filter((app) => app.id !== deleteId))
+    setShowDeleteDialog(false)
   }
 
   const openEditDialog = (app: AppType) => {
@@ -195,7 +212,8 @@ export default function MoreAppsPage() {
   )
 
   return (
-    <DashboardLayout>
+    <>
+
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -266,7 +284,7 @@ export default function MoreAppsPage() {
                     variant="outline"
                     size="sm"
                     className="text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
-                    onClick={() => handleDeleteApp(app.id)}
+                    onClick={() => confirmDelete(app.id)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -308,6 +326,24 @@ export default function MoreAppsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the app from your portfolio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteApp} className="bg-destructive hover:bg-destructive/90">
+              Delete App
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

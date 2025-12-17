@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Send, Search, Trash2, Eye, CheckCircle2, XCircle, Clock } from "lucide-react"
 
@@ -26,21 +37,25 @@ type NotificationType = {
   id: string
   title: string
   message: string
-  target: "all" | "premium" | "free" | "specific"
-  status: "sent" | "scheduled" | "failed"
+  target: string
+  status: string
   sentAt: string
   recipients: number
   delivered: number
   opened: number
+  fcmMessageId?: string
 }
 
-const mockNotifications: NotificationType[] = []
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationType[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [showSendDialog, setShowSendDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [selectedNotification, setSelectedNotification] = useState<NotificationType | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const { toast } = useToast()
 
@@ -112,11 +127,31 @@ export default function NotificationsPage() {
     }
   }
 
-  const handleDeleteNotification = (id: string) => {
-    // Delete implementation not requested yet, specifically backend
-    // But we can optimistically remove from UI or implement API later
-    // For now just console log
-    console.log("Delete not implemented in API yet")
+  const confirmDelete = (id: string) => {
+    setDeleteId(id)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteNotification = async () => {
+    if (!deleteId) return
+
+    try {
+      const res = await fetch(`/api/notifications/${deleteId}`, { method: "DELETE" })
+      if (res.ok) {
+        toast({ title: "Deleted", description: "Notification history deleted" })
+        setNotifications((prev) => prev.filter((n) => n.id !== deleteId))
+        setShowDeleteDialog(false)
+      } else {
+        throw new Error("Failed to delete")
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete notification", variant: "destructive" })
+    }
+  }
+
+  const handleViewNotification = (notification: NotificationType) => {
+    setSelectedNotification(notification)
+    setShowViewDialog(true)
   }
 
   const getStatusBadge = (status: string) => {
@@ -148,7 +183,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -249,14 +284,19 @@ export default function NotificationsPage() {
                           <TableCell>{notification.opened.toLocaleString()}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleViewNotification(notification)}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteNotification(notification.id)}
+                                onClick={() => confirmDelete(notification.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -350,7 +390,71 @@ export default function NotificationsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog >
+
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notification Details</DialogTitle>
+          </DialogHeader>
+          {selectedNotification && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Title</Label>
+                <div className="font-medium text-lg">{selectedNotification.title}</div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Message</Label>
+                <div className="bg-muted p-3 rounded-md text-sm mt-1">{selectedNotification.message}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wider">Target</Label>
+                  <div><Badge variant="outline">{selectedNotification.target}</Badge></div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wider">Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedNotification.status)}</div>
+                </div>
+              </div>
+              {selectedNotification.fcmMessageId && (
+                <div>
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wider">FCM Message ID</Label>
+                  <div className="font-mono text-xs bg-slate-950 text-slate-50 p-2 rounded mt-1 break-all">
+                    {selectedNotification.fcmMessageId}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    * This ID confirms that Firebase accepted the message request.
+                  </p>
+                </div>
+              )}
+              <div className="pt-2 text-xs text-muted-foreground">
+                Sent: {selectedNotification.sentAt}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowViewDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </DashboardLayout>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this notification record from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteNotification} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
