@@ -22,9 +22,8 @@ const delius = Delius({
 })
 
 export const metadata: Metadata = {
-  title: "CloudVPN Pro - Admin Panel",
+  title: "Super VPN - Admin Panel",
   description: "Secure VPN management dashboard with advanced analytics and control",
-  generator: "v0.app",
   icons: {
     icon: [
       {

@@ -1,99 +1,86 @@
+
 import { NextResponse } from "next/server";
 import { adminAuth, adminFirestore } from "@/lib/firebase/admin";
 
 export async function GET(request: Request) {
     try {
-        const { searchParams } = new URL(request.url);
-        const limit = parseInt(searchParams.get("limit") || "10");
-        const pageToken = searchParams.get("pageToken") || undefined;
+        // Fetch users from Firebase Authentication
+        const listUsersResult = await adminAuth.listUsers(1000);
+        const authUsers = listUsersResult.users;
 
-        const listUsersResult = await adminAuth.listUsers(limit, pageToken);
-
-        return NextResponse.json({
-            users: listUsersResult.users,
-            nextPageToken: listUsersResult.pageToken,
+        // Fetch user details from Firestore
+        const userDocsSnapshot = await adminFirestore.collection("users").get();
+        const firestoreUsersMap: Record<string, any> = {};
+        userDocsSnapshot.forEach(doc => {
+            firestoreUsersMap[doc.id] = doc.data();
         });
+
+        // Merge Auth and Firestore data
+        const users = authUsers.map(authUser => {
+            const firestoreData = firestoreUsersMap[authUser.uid] || {};
+
+            // Determine tier/status based on firestore data or defaults
+            let status = firestoreData.status || "active";
+            if (authUser.disabled) status = "suspended";
+
+            return {
+                id: authUser.uid,
+                uid: authUser.uid,
+                name: authUser.displayName || firestoreData.displayName || "Guest User",
+                email: authUser.email || firestoreData.email || "No Email",
+                avatar: authUser.photoURL || firestoreData.photoURL || "",
+                role: firestoreData.role || "user",
+                status: status,
+                tier: firestoreData.plan || "free", // plan field from firestore
+                registrationDate: authUser.metadata.creationTime ? new Date(authUser.metadata.creationTime).toLocaleDateString() : "Unknown",
+                lastLogin: authUser.metadata.lastSignInTime ? new Date(authUser.metadata.lastSignInTime).toLocaleDateString() : "Never",
+                provider: authUser.providerData.length > 0 ? authUser.providerData[0].providerId : "anonymous",
+                // Mock usage stats for now as they are not standard in Auth
+                totalConnectionTime: firestoreData.totalConnectionTime || "0h 0m",
+                dataTransferred: firestoreData.dataTransferred || "0 MB",
+            };
+        });
+
+        return NextResponse.json({ users });
     } catch (error) {
         console.error("Error fetching users:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
 
-// Example POST for privileged actions like creating a user or setting claims
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { email, password, role } = body;
-
-        const userRecord = await adminAuth.createUser({
-            email,
-            password,
-        });
-
-        if (role) {
-            await adminAuth.setCustomUserClaims(userRecord.uid, { role });
-        }
-
-        return NextResponse.json({ user: userRecord }, { status: 201 });
-    } catch (error) {
-        console.error("Error creating user:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
-}
-
-// Update user (e.g. suspend, grant premium, disable)
 export async function PUT(request: Request) {
     try {
-        const body = await request.json();
-        const { uid, status, role, disabled } = body;
+        const { userId, action, payload } = await request.json();
 
-        if (!uid) {
-            return NextResponse.json({ error: "Missing User UID" }, { status: 400 });
+        if (!userId || !action) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const updates: any = {};
-        if (disabled !== undefined) {
-            updates.disabled = disabled;
+        if (action === "ban") {
+            await adminAuth.updateUser(userId, { disabled: true });
+            await adminFirestore.collection("users").doc(userId).set({ status: "suspended" }, { merge: true });
+        } else if (action === "unban") {
+            await adminAuth.updateUser(userId, { disabled: false });
+            // Revert to active or previous status if known, defaulting to active
+            await adminFirestore.collection("users").doc(userId).set({ status: "active" }, { merge: true });
+        } else if (action === "set_role") {
+            // payload.role should be 'admin' or 'user'
+            const role = payload?.role || "user";
+            await adminAuth.setCustomUserClaims(userId, { role });
+            await adminFirestore.collection("users").doc(userId).set({ role }, { merge: true });
+        } else if (action === "set_plan") {
+            // payload.plan should be 'premium' or 'free'
+            const plan = payload?.plan || "free";
+            await adminFirestore.collection("users").doc(userId).set({
+                plan: plan,
+                status: plan === "premium" ? "premium" : "active"
+            }, { merge: true });
         }
-
-        // Update Auth profile if needed
-        if (Object.keys(updates).length > 0) {
-            await adminAuth.updateUser(uid, updates);
-        }
-
-        // Update Custom Claims if role/status changes (simplified logic)
-        if (role || status) {
-            const currentClaims = (await adminAuth.getUser(uid)).customClaims || {};
-            await adminAuth.setCustomUserClaims(uid, { ...currentClaims, role, status });
-        }
-
-        // Also update Firestore user document for searching/filtering
-        // note: In a real production app, you might listen to Auth triggers to sync this
-        const userRef = adminFirestore.collection("users").doc(uid);
-        await userRef.set({ ...body, updatedAt: new Date().toISOString() }, { merge: true });
 
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error updating user:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
-}
-
-export async function DELETE(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const uid = searchParams.get("uid");
-
-        if (!uid) {
-            return NextResponse.json({ error: "Missing User UID" }, { status: 400 });
-        }
-
-        await adminAuth.deleteUser(uid);
-        await adminFirestore.collection("users").doc(uid).delete();
-
-        return NextResponse.json({ success: true, uid });
-    } catch (error) {
-        console.error("Error deleting user:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        // Return clearer error message
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });
     }
 }

@@ -32,9 +32,14 @@ import {
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { getServers, deleteServer, updateServer, type ServerData } from "@/lib/server-service"
+
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAlert } from "@/components/admin-alert"
 
 export default function ServersPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const { toast } = useToast()
   const [viewMode, setViewMode] = useState<"table" | "grid">("table")
   const [servers, setServers] = useState<ServerData[]>([])
@@ -164,6 +169,8 @@ export default function ServersPage() {
           <p className="text-muted-foreground mt-2">Manage and monitor your VPN servers</p>
         </div>
 
+        <AdminAlert />
+
         <Card>
           <CardHeader className="pb-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -276,13 +283,13 @@ export default function ServersPage() {
                     <Grid3x3 className="h-4 w-4" />
                   </Button>
                 </div>
-
-                <Link href="/dashboard/servers/add">
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Server
-                  </Button>
-                </Link>
+                <div className="flex gap-2 w-full lg:w-auto">
+                  <Link href="/dashboard/servers/add">
+                    <Button className="w-full lg:w-auto" disabled={!isAdmin}>
+                      <Plus className="mr-2 h-4 w-4" /> Add Server
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -291,12 +298,14 @@ export default function ServersPage() {
             {filteredServers.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No servers found. Add your first server to get started.</p>
-                <Link href="/dashboard/servers/add">
-                  <Button className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Server
-                  </Button>
-                </Link>
+                {isAdmin && (
+                  <Link href="/dashboard/servers/add">
+                    <Button className="mt-4">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Server
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : viewMode === "table" ? (
               <div className="rounded-lg border overflow-hidden">
@@ -373,12 +382,12 @@ export default function ServersPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <Link href={`/dashboard/servers/edit/${server.id}`}>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem disabled={!isAdmin}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
                               </Link>
-                              <DropdownMenuItem onClick={() => handleToggleStatus(server)}>
+                              <DropdownMenuItem onClick={() => handleToggleStatus(server)} disabled={!isAdmin}>
                                 <Power className="h-4 w-4 mr-2" />
                                 {server.isActive === false ? "Activate" : "Deactivate"}
                               </DropdownMenuItem>
@@ -386,6 +395,7 @@ export default function ServersPage() {
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => confirmDelete(server.id!, server.name)}
+                                disabled={!isAdmin}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -399,46 +409,49 @@ export default function ServersPage() {
                 </Table>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              // Grid View
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredServers.map((server) => (
                   <Card key={server.id} className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{server.flag}</span>
-                          <div>
-                            <h3 className="font-semibold">{server.name}</h3>
-                            <p className="text-xs text-muted-foreground">{server.country}</p>
-                          </div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl">{server.flag}</span>
+                        <div>
+                          <h3 className="font-semibold">{server.name}</h3>
+                          <p className="text-xs text-muted-foreground">{server.country}</p>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <Link href={`/dashboard/servers/edit/${server.id}`}>
-                              <DropdownMenuItem>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            </Link>
-                            <DropdownMenuItem onClick={() => handleToggleStatus(server)}>
-                              <Power className="h-4 w-4 mr-2" />
-                              {server.isActive === false ? "Activate" : "Deactivate"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => confirmDelete(server.id!, server.name)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(server)} disabled={!isAdmin}>
+                            <Power className="h-4 w-4 mr-2" />
+                            {server.isActive ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <Link href={`/dashboard/servers/edit/${server.id}`}>
+                            <DropdownMenuItem disabled={!isAdmin}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                          </Link>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => confirmDelete(server.id!, server.name)}
+                            disabled={!isAdmin}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between text-sm">

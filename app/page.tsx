@@ -288,9 +288,8 @@ export default function LandingPage() {
               <Card
                 key={index}
                 data-feature-index={index}
-                className={`group hover:shadow-2xl transition-all duration-500 hover:scale-105 border-0 bg-card ${
-                  visibleFeatures[index] ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-                }`}
+                className={`group hover:shadow-2xl transition-all duration-500 hover:scale-105 border-0 bg-card ${visibleFeatures[index] ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                  }`}
                 style={{
                   transitionDelay: `${index * 100}ms`,
                 }}
@@ -361,7 +360,7 @@ export default function LandingPage() {
               <div className="relative z-10 mx-auto w-full max-w-sm">
                 <img
                   src="/modern-vpn-mobile-app-interface.jpg"
-                  alt="CloudVPN Pro App"
+                  alt="SuperVPN Pro App"
                   className="rounded-3xl shadow-2xl"
                 />
               </div>
@@ -467,7 +466,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
-              <h3 className="text-2xl font-bold mb-4 gradient-text">CloudVPN Pro</h3>
+              <h3 className="text-2xl font-bold mb-4 gradient-text">SuperVPN Pro</h3>
               <p className="text-gray-400">Securing your digital freedom worldwide.</p>
             </div>
 
@@ -536,7 +535,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} CloudVPN Pro. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} SuperVPN Pro. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* New vibrant color scheme for CloudVPN Pro with electric blue, cyan, and purple accents */
+/* New vibrant color scheme for SuperVPN Pro with electric blue, cyan, and purple accents */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -211,6 +211,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -221,6 +222,7 @@
       opacity: 0;
       transform: translateY(30px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -232,6 +234,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -243,6 +246,7 @@
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);

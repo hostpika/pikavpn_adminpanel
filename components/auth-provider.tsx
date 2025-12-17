@@ -46,7 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         photoURL: firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
                         phoneNumber: userData?.phoneNumber || "",
                         bio: userData?.bio || "",
-                        location: userData?.location || ""
+                        location: userData?.location || "",
+                        role: userData?.role || "user"
                     }
                     setUser(appUser)
                 } catch (error) {
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         email: firebaseUser.email || "",
                         displayName: firebaseUser.displayName || "Admin User",
                         photoURL: firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
+                        role: "user"
                     }
                     setUser(appUser)
                 }

@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Send, Search, Trash2, Eye, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAlert } from "@/components/admin-alert"
 
 type NotificationType = {
   id: string
@@ -58,6 +60,8 @@ export default function NotificationsPage() {
   const [selectedNotification, setSelectedNotification] = useState<NotificationType | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
 
   const [formData, setFormData] = useState({
     title: "",
@@ -185,12 +189,15 @@ export default function NotificationsPage() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Push Notifications</h1>
-            <p className="text-muted-foreground mt-2">Send notifications to your users via Firebase FCM</p>
-          </div>
-          <Button onClick={() => setShowSendDialog(true)} className="gap-2">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Push Notifications</h1>
+          <p className="text-muted-foreground mt-2">Send notifications to your users via Firebase FCM</p>
+        </div>
+
+        <AdminAlert />
+
+        <div className="flex items-center justify-end">
+          <Button onClick={() => setShowSendDialog(true)} className="gap-2" disabled={!isAdmin}>
             <Send className="h-4 w-4" />
             Send Notification
           </Button>
@@ -297,6 +304,7 @@ export default function NotificationsPage() {
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
                                 onClick={() => confirmDelete(notification.id)}
+                                disabled={!isAdmin}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -311,7 +319,7 @@ export default function NotificationsPage() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+      </div >
 
       <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
         <DialogContent className="max-w-2xl">

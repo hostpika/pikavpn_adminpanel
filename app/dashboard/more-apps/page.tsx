@@ -28,6 +28,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAlert } from "@/components/admin-alert"
 
 type AppType = {
   id: string
@@ -43,7 +45,7 @@ type AppType = {
 const mockApps: AppType[] = [
   {
     id: "1",
-    name: "CloudVPN Pro",
+    name: "SuperVPN Pro",
     description: "Premium VPN service with unlimited bandwidth and 50+ server locations",
     playstoreUrl: "https://play.google.com/store/apps/details?id=com.cloudvpn.pro",
     imageUrl: "/cloudvpn-icon.jpg",
@@ -70,6 +72,8 @@ export default function MoreAppsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<AppType | null>(null)
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -142,7 +146,7 @@ export default function MoreAppsPage() {
         <Label htmlFor="name">App Name *</Label>
         <Input
           id="name"
-          placeholder="CloudVPN Pro"
+          placeholder="SuperVPN Pro"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
@@ -220,13 +224,23 @@ export default function MoreAppsPage() {
             <h1 className="text-3xl font-bold tracking-tight">More Apps</h1>
             <p className="text-muted-foreground mt-2">Manage your published apps on Google Play Store</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2" disabled={!isAdmin}>
             <Plus className="h-4 w-4" />
             Add App
           </Button>
         </div>
 
+        <AdminAlert />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Add New App Card */}
+          <Card className="flex flex-col items-center justify-center p-6 border-dashed cursor-pointer hover:border-primary transition-colors min-h-[220px]" onClick={() => isAdmin && setShowAddDialog(true)}>
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Plus className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg">Add New App</h3>
+            <p className="text-sm text-muted-foreground text-center mt-1">Add another application to your portfolio</p>
+          </Card>
           {apps.map((app) => (
             <Card key={app.id} className="overflow-hidden hover:shadow-lg transition-all">
               <CardHeader className="pb-4">
@@ -274,17 +288,17 @@ export default function MoreAppsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 gap-2 bg-transparent"
                     onClick={() => openEditDialog(app)}
+                    disabled={!isAdmin}
                   >
                     <Edit className="h-3 w-3" />
-                    Edit
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
                     onClick={() => confirmDelete(app.id)}
+                    disabled={!isAdmin}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>

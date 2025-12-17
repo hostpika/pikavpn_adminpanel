@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Save, Loader2, Shield } from "lucide-react"
 import { useConfig } from "@/hooks/use-config"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAlert } from "@/components/admin-alert"
 
 export default function VpnConfigPage() {
     const { config, loading, hasChanges, updateConfig, saveConfig, saving } = useConfig()
+    const { user } = useAuth()
+    const isAdmin = user?.role === "admin"
 
     if (loading) {
         return (
@@ -32,7 +36,7 @@ export default function VpnConfigPage() {
                 </div>
                 <Button
                     onClick={saveConfig}
-                    disabled={!hasChanges || saving}
+                    disabled={!hasChanges || saving || !isAdmin}
                     className="bg-gradient-to-r from-primary to-secondary"
                 >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
@@ -44,6 +48,8 @@ export default function VpnConfigPage() {
                     )}
                 </Button>
             </div>
+
+            <AdminAlert />
 
             <Card>
                 <CardHeader>
@@ -113,7 +119,7 @@ export default function VpnConfigPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
 
     )
 }

@@ -1,4 +1,4 @@
-# Complete AI Agent Prompt: CloudVPN Pro Admin Panel Frontend Development
+# Complete AI Agent Prompt: SuperVPN Pro Admin Panel Frontend Development
 
 ## Project Overview
 

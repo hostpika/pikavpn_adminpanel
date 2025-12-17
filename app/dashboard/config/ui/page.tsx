@@ -10,9 +10,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Save, Loader2, Palette, Upload } from "lucide-react"
 import { useConfig } from "@/hooks/use-config"
+import { useAuth } from "@/components/auth-provider"
+import { AdminAlert } from "@/components/admin-alert"
 
 export default function UiConfigPage() {
     const { config, loading, hasChanges, updateConfig, saveConfig, saving } = useConfig()
+    const { user } = useAuth()
+    const isAdmin = user?.role === "admin"
 
     if (loading) {
         return (
@@ -31,7 +35,7 @@ export default function UiConfigPage() {
                 </div>
                 <Button
                     onClick={saveConfig}
-                    disabled={!hasChanges || saving}
+                    disabled={!hasChanges || saving || !isAdmin}
                     className="bg-gradient-to-r from-primary to-secondary"
                 >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
@@ -43,6 +47,8 @@ export default function UiConfigPage() {
                     )}
                 </Button>
             </div>
+
+            <AdminAlert />
 
             <Card>
                 <CardHeader>
@@ -123,7 +129,7 @@ export default function UiConfigPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
 
     )
 }

@@ -2,8 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-provider"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,8 +23,28 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function AddServerPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && user?.role !== "admin") {
+      router.push("/dashboard/servers")
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to add servers.",
+        variant: "destructive",
+      })
+    }
+  }, [user, authLoading, router, toast])
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
   const [ovpnFile, setOvpnFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     name: "",

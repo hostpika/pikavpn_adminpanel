@@ -27,11 +27,23 @@ export interface ConfigState {
         showcaseText: string
     }
     ads: {
-        admobEnabled: boolean
-        fanEnabled: boolean
-        bannerUnitId: string
-        interstitialUnitId: string
-        rewardedUnitId: string
+        activeProvider: "admob" | "facebook" | "none"
+        // AdMob
+        admobAppId: string
+        admobBannerId: string
+        admobInterstitialId: string
+        admobNativeId: string
+        admobOpenAppId: string
+        admobRewardedId: string
+
+        // Facebook Audience Network
+        fanAppId: string
+        fanBannerId: string
+        fanInterstitialId: string
+        fanNativeId: string
+        fanRewardedId: string
+
+        // General
         adFrequency: number
         bannerPosition: string
         rewardedVideoReward: string
@@ -63,16 +75,28 @@ const defaultConfig: ConfigState = {
     ui: {
         primaryColor: "#3b82f6",
         accentColor: "#06b6d4",
-        appName: "CloudVPN Pro",
+        appName: "SuperVPN Pro",
         logoUrl: "https://example.com/logo.png",
         showcaseText: "Fast and secure VPN connections worldwide. Protect your privacy with military-grade encryption.",
     },
     ads: {
-        admobEnabled: true,
-        fanEnabled: true,
-        bannerUnitId: "",
-        interstitialUnitId: "",
-        rewardedUnitId: "",
+        activeProvider: "admob",
+
+        // AdMob Defaults
+        admobAppId: "",
+        admobBannerId: "",
+        admobInterstitialId: "",
+        admobNativeId: "",
+        admobOpenAppId: "",
+        admobRewardedId: "",
+
+        // FAN Defaults
+        fanAppId: "",
+        fanBannerId: "",
+        fanInterstitialId: "",
+        fanNativeId: "",
+        fanRewardedId: "",
+
         adFrequency: 3,
         bannerPosition: "bottom",
         rewardedVideoReward: "24 hours ad-free experience",

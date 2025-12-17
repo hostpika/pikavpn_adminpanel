@@ -15,6 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -42,11 +46,33 @@ import {
   Clock,
   Crown,
   Loader2,
+  Shield,
+  Zap,
+  Activity,
+  UserCog,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getUsers, updateUser, deleteUser, type UserData } from "@/lib/user-service"
+// Removed direct import from user-service, using fetch now
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/components/auth-provider"
+
+// Define UserData locally or import shared type
+export interface UserData {
+  id: string
+  uid?: string
+  name: string
+  email: string
+  avatar?: string
+  role: "admin" | "user"
+  status: "active" | "trial" | "premium" | "suspended"
+  tier: "free" | "basic" | "premium"
+  registrationDate: string
+  lastLogin: string
+  provider?: string
+  totalConnectionTime?: string
+  dataTransferred?: string
+  deviceCount?: number
+}
 
 export default function UsersPage() {
   const { toast } = useToast()
@@ -56,11 +82,18 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [tierFilter, setTierFilter] = useState<string[]>([])
+  const [roleFilter, setRoleFilter] = useState<string[]>([])
+  const [excludeGuests, setExcludeGuests] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showActionDialog, setShowActionDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
-  const [actionType, setActionType] = useState<"suspend" | "grant" | "delete" | null>(null)
+  const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | null>(null)
+
   const [actionForm, setActionForm] = useState({ duration: "30", reason: "" })
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     loadUsers()
@@ -69,10 +102,12 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const fetchedUsers = await getUsers()
-      setUsers(fetchedUsers)
+      const res = await fetch("/api/users")
+      if (!res.ok) throw new Error("Failed to fetch users")
+      const data = await res.json()
+      setUsers(data.users)
     } catch (error) {
-      console.error("[v0] Error loading users:", error)
+      console.error("Error loading users:", error)
       toast({
         title: "Error",
         description: "Failed to load users. Please try again.",
@@ -89,8 +124,25 @@ export default function UsersPage() {
       (user.name || "").toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(user.status)
     const matchesTier = tierFilter.length === 0 || tierFilter.includes(user.tier)
-    return matchesSearch && matchesStatus && matchesTier
+    const matchesRole = roleFilter.length === 0 || roleFilter.includes(user.role)
+    const matchesGuest = !excludeGuests || user.provider !== "anonymous"
+    return matchesSearch && matchesStatus && matchesTier && matchesRole && matchesGuest
   })
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage)
+    }
+  }
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, tierFilter, roleFilter, excludeGuests])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -127,7 +179,7 @@ export default function UsersPage() {
     setShowDetailDialog(true)
   }
 
-  const openActionDialog = (user: UserData, action: "suspend" | "grant" | "delete") => {
+  const openActionDialog = (user: UserData, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin") => {
     setSelectedUser(user)
     setActionType(action)
     setShowActionDialog(true)
@@ -137,40 +189,54 @@ export default function UsersPage() {
     if (!selectedUser || !actionType) return
 
     try {
+      let endpoint = "/api/users"
+      let method = "PUT"
+      let payload: any = { userId: selectedUser.id || selectedUser.uid } // Handle both id formats
+
       if (actionType === "suspend") {
-        await updateUser(selectedUser.id!, { status: "suspended" })
-        setUsers(users.map((u) => (u.id === selectedUser.id ? { ...u, status: "suspended" as const } : u)))
-        toast({
-          title: "Success",
-          description: "User account has been suspended.",
-        })
+        payload.action = "ban"
+      } else if (actionType === "unsuspend") {
+        payload.action = "unban"
       } else if (actionType === "grant") {
-        await updateUser(selectedUser.id!, { status: "premium", tier: "premium" })
-        setUsers(
-          users.map((u) =>
-            u.id === selectedUser.id ? { ...u, status: "premium" as const, tier: "premium" as const } : u,
-          ),
-        )
-        toast({
-          title: "Success",
-          description: "Premium access has been granted.",
-        })
-      } else if (actionType === "delete") {
-        await deleteUser(selectedUser.id!)
-        setUsers(users.filter((u) => u.id !== selectedUser.id))
-        toast({
-          title: "Success",
-          description: "User account has been deleted.",
-        })
+        payload.action = "set_plan"
+        payload.payload = { plan: "premium" }
+      } else if (actionType === "make_admin") {
+        payload.action = "set_role"
+        payload.payload = { role: "admin" }
+      } else if (actionType === "remove_admin") {
+        payload.action = "set_role"
+        payload.payload = { role: "user" }
       }
+
+      // For delete, we might still want strictly local handling or API if implemented
+      // Assuming API handles it or keeping placeholder for now if deleteUser import removed
+      if (actionType === "delete") {
+        // TODO: Implement delete in API if needed
+        toast({ title: "Not Implemented", description: "Delete via API not yet set up." })
+        return
+      }
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to update user")
+      }
+
+      toast({ title: "Success", description: "User updated successfully" })
+      loadUsers() // Reload to see changes
 
       setShowActionDialog(false)
       setActionForm({ duration: "30", reason: "" })
-    } catch (error) {
-      console.error("[v0] Error performing action:", error)
+    } catch (error: any) {
+      console.error("Error performing action:", error)
       toast({
         title: "Error",
-        description: "Failed to perform action. Please try again.",
+        description: error.message || "Failed to perform action.",
         variant: "destructive",
       })
     }
@@ -277,91 +343,170 @@ export default function UsersPage() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 bg-transparent">
+                    <Button variant="outline" className="gap-2 border-dashed">
                       <Filter className="h-4 w-4" />
                       Filters
-                      {(statusFilter.length > 0 || tierFilter.length > 0) && (
-                        <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
-                          {statusFilter.length + tierFilter.length}
+                      {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
+                        <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal lg:hidden">
+                          {statusFilter.length + tierFilter.length + roleFilter.length}
                         </Badge>
+                      )}
+                      {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
+                        <div className="hidden lg:flex gap-1 ml-1">
+                          {statusFilter.length > 0 && (
+                            <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                              {statusFilter.length} status
+                            </Badge>
+                          )}
+                          {tierFilter.length > 0 && (
+                            <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                              {tierFilter.length} tier
+                            </Badge>
+                          )}
+                          {roleFilter.length > 0 && (
+                            <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                              {roleFilter.length} role
+                            </Badge>
+                          )}
+                        </div>
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Status</DropdownMenuLabel>
-                    <DropdownMenuCheckboxItem
-                      checked={statusFilter.includes("active")}
-                      onCheckedChange={(checked) =>
-                        setStatusFilter(
-                          checked ? [...statusFilter, "active"] : statusFilter.filter((s) => s !== "active"),
-                        )
-                      }
-                    >
-                      Active
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={statusFilter.includes("trial")}
-                      onCheckedChange={(checked) =>
-                        setStatusFilter(
-                          checked ? [...statusFilter, "trial"] : statusFilter.filter((s) => s !== "trial"),
-                        )
-                      }
-                    >
-                      Trial
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={statusFilter.includes("premium")}
-                      onCheckedChange={(checked) =>
-                        setStatusFilter(
-                          checked ? [...statusFilter, "premium"] : statusFilter.filter((s) => s !== "premium"),
-                        )
-                      }
-                    >
-                      Premium
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={statusFilter.includes("suspended")}
-                      onCheckedChange={(checked) =>
-                        setStatusFilter(
-                          checked ? [...statusFilter, "suspended"] : statusFilter.filter((s) => s !== "suspended"),
-                        )
-                      }
-                    >
-                      Suspended
-                    </DropdownMenuCheckboxItem>
+                  <DropdownMenuContent align="end" className="w-[200px]">
+                    <DropdownMenuLabel>Filter Users</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Tier</DropdownMenuLabel>
-                    <DropdownMenuCheckboxItem
-                      checked={tierFilter.includes("free")}
-                      onCheckedChange={(checked) =>
-                        setTierFilter(checked ? [...tierFilter, "free"] : tierFilter.filter((t) => t !== "free"))
-                      }
-                    >
-                      Free
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={tierFilter.includes("basic")}
-                      onCheckedChange={(checked) =>
-                        setTierFilter(checked ? [...tierFilter, "basic"] : tierFilter.filter((t) => t !== "basic"))
-                      }
-                    >
-                      Basic
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={tierFilter.includes("premium")}
-                      onCheckedChange={(checked) =>
-                        setTierFilter(checked ? [...tierFilter, "premium"] : tierFilter.filter((t) => t !== "premium"))
-                      }
-                    >
-                      Premium
-                    </DropdownMenuCheckboxItem>
-                    {(statusFilter.length > 0 || tierFilter.length > 0) && (
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Activity className="mr-2 h-4 w-4" />
+                        <span>Status</span>
+                        {statusFilter.length > 0 && (
+                          <span className="ml-auto mr-2 flex h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="p-0">
+                          <DropdownMenuCheckboxItem
+                            checked={statusFilter.includes("active")}
+                            onCheckedChange={(checked) =>
+                              setStatusFilter(
+                                checked ? [...statusFilter, "active"] : statusFilter.filter((s) => s !== "active"),
+                              )
+                            }
+                          >
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                            Active
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={statusFilter.includes("trial")}
+                            onCheckedChange={(checked) =>
+                              setStatusFilter(
+                                checked ? [...statusFilter, "trial"] : statusFilter.filter((s) => s !== "trial"),
+                              )
+                            }
+                          >
+                            <Clock className="mr-2 h-4 w-4 text-amber-500" />
+                            Trial
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={statusFilter.includes("premium")}
+                            onCheckedChange={(checked) =>
+                              setStatusFilter(
+                                checked ? [...statusFilter, "premium"] : statusFilter.filter((s) => s !== "premium"),
+                              )
+                            }
+                          >
+                            <Crown className="mr-2 h-4 w-4 text-purple-500" />
+                            Premium
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={statusFilter.includes("suspended")}
+                            onCheckedChange={(checked) =>
+                              setStatusFilter(
+                                checked ? [...statusFilter, "suspended"] : statusFilter.filter((s) => s !== "suspended"),
+                              )
+                            }
+                          >
+                            <Ban className="mr-2 h-4 w-4 text-red-500" />
+                            Suspended
+                          </DropdownMenuCheckboxItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Zap className="mr-2 h-4 w-4" />
+                        <span>Tier</span>
+                        {tierFilter.length > 0 && (
+                          <span className="ml-auto mr-2 flex h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="p-0">
+                          <DropdownMenuCheckboxItem
+                            checked={tierFilter.includes("free")}
+                            onCheckedChange={(checked) =>
+                              setTierFilter(checked ? [...tierFilter, "free"] : tierFilter.filter((t) => t !== "free"))
+                            }
+                          >
+                            <Zap className="mr-2 h-4 w-4 text-blue-500" />
+                            Free
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={tierFilter.includes("premium")}
+                            onCheckedChange={(checked) =>
+                              setTierFilter(checked ? [...tierFilter, "premium"] : tierFilter.filter((t) => t !== "premium"))
+                            }
+                          >
+                            <Crown className="mr-2 h-4 w-4 text-purple-500" />
+                            Premium
+                          </DropdownMenuCheckboxItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Role</span>
+                        {roleFilter.length > 0 && (
+                          <span className="ml-auto mr-2 flex h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="p-0">
+                          <DropdownMenuCheckboxItem
+                            checked={roleFilter.includes("admin")}
+                            onCheckedChange={(checked) =>
+                              setRoleFilter(checked ? [...roleFilter, "admin"] : roleFilter.filter((r) => r !== "admin"))
+                            }
+                          >
+                            <Shield className="mr-2 h-4 w-4 text-red-500" />
+                            Admin
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={roleFilter.includes("user")}
+                            onCheckedChange={(checked) =>
+                              setRoleFilter(checked ? [...roleFilter, "user"] : roleFilter.filter((r) => r !== "user"))
+                            }
+                          >
+                            <UserCog className="mr-2 h-4 w-4 text-gray-500" />
+                            User
+                          </DropdownMenuCheckboxItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+
+                    {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                          className="justify-center text-center font-medium"
                           onClick={() => {
                             setStatusFilter([])
                             setTierFilter([])
+                            setRoleFilter([])
                           }}
                         >
                           Clear Filters
@@ -370,6 +515,16 @@ export default function UsersPage() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                <Button
+                  variant={excludeGuests ? "secondary" : "outline"}
+                  onClick={() => setExcludeGuests(!excludeGuests)}
+                  className="gap-2 border-dashed"
+                >
+                  <Users className="h-4 w-4" />
+                  Exclude Guests
+                  {excludeGuests && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                </Button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -379,7 +534,7 @@ export default function UsersPage() {
                 </Button>
               </div>
             </div>
-          </CardHeader>
+          </CardHeader >
 
           <CardContent>
             {loading ? (
@@ -411,7 +566,7 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user, index) => (
+                    {paginatedUsers.map((user, index) => (
                       <TableRow key={user.uid || user.id || index}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -425,8 +580,12 @@ export default function UsersPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-semibold">{user.name}</div>
+                              <div className="font-semibold flex items-center gap-2">
+                                {user.name}
+                                {user.role === "admin" && <Badge variant="secondary" className="text-[10px] h-4">Admin</Badge>}
+                              </div>
                               <div className="text-xs text-muted-foreground">{user.email}</div>
+                              <div className="text-[10px] text-muted-foreground uppercase">{user.provider}</div>
                             </div>
                           </div>
                         </TableCell>
@@ -486,7 +645,24 @@ export default function UsersPage() {
                                   {user.status !== "suspended" && (
                                     <DropdownMenuItem onClick={() => openActionDialog(user, "suspend")}>
                                       <Ban className="mr-2 h-4 w-4" />
-                                      Suspend Account
+                                    </DropdownMenuItem>
+                                  )}
+                                  {user.status === "suspended" && (
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "unsuspend")}>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Reactivate Account
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {user.role !== "admin" ? (
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "make_admin")}>
+                                      <Crown className="mr-2 h-4 w-4" />
+                                      Make Admin
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "remove_admin")}>
+                                      <Ban className="mr-2 h-4 w-4" />
+                                      Remove Admin
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuSeparator />
@@ -509,11 +685,46 @@ export default function UsersPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
+        </Card >
+
+        {/* Pagination Controls */}
+        {
+          filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+
+                  <span className="text-sm font-medium mx-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      </div >
 
       {/* User Detail Dialog */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+      < Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog} >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
@@ -591,10 +802,10 @@ export default function UsersPage() {
             </Tabs>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Action Dialog */}
-      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+      < Dialog open={showActionDialog} onOpenChange={setShowActionDialog} >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -607,6 +818,9 @@ export default function UsersPage() {
                 "This will prevent the user from accessing their account. You can unsuspend them later."}
               {actionType === "grant" && "Grant this user complimentary premium access for a specified duration."}
               {actionType === "delete" && "This action is irreversible and will permanently delete all user data."}
+              {actionType === "make_admin" && "This user will have full access to the dashboard."}
+              {actionType === "remove_admin" && "This user will lose admin privileges."}
+              {actionType === "unsuspend" && "This user will be able to access the app again."}
             </DialogDescription>
           </DialogHeader>
 
@@ -652,12 +866,15 @@ export default function UsersPage() {
             </Button>
             <Button variant={actionType === "delete" ? "destructive" : "default"} onClick={handleAction}>
               {actionType === "suspend" && "Suspend Account"}
+              {actionType === "unsuspend" && "Unsuspend Account"}
               {actionType === "grant" && "Grant Premium"}
               {actionType === "delete" && "Delete Account"}
+              {actionType === "make_admin" && "Make Admin"}
+              {actionType === "remove_admin" && "Remove Admin"}
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
     </>
   )
