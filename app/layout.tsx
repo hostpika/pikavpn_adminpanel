@@ -4,7 +4,7 @@ import { Geist, Geist_Mono, Parkinsans, Delius } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PreferencesProvider } from "@/components/preferences-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth-provider"
 

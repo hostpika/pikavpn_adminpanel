@@ -29,10 +29,10 @@ import {
   type ServerLoadDataPoint,
   type UserGrowthDataPoint,
 } from "@/lib/dashboard-service"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [connectionData, setConnectionData] = useState<ConnectionDataPoint[]>([])
@@ -68,10 +68,8 @@ export default function DashboardPage() {
       setSystemHealth(health)
     } catch (error) {
       console.error("[v0] Error loading dashboard data:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to load dashboard data. Please refresh the page.",
-        variant: "destructive",
       })
     } finally {
       setLoading(false)

@@ -22,7 +22,7 @@ import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { fetchWithAuth } from "@/lib/api-client"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function PreferencesPage() {
   const { colorScheme, setColorScheme, sidebarDensity, setSidebarDensity } = usePreferences()
@@ -80,10 +80,8 @@ export default function PreferencesPage() {
       })
     } catch (e) {
       console.error(`Failed to save ${key}`, e)
-      toast({
-        title: "Error saving setting",
+      toast.error("Error saving setting", {
         description: "Could not save your changes to the cloud.",
-        variant: "destructive"
       })
     }
   }
@@ -336,7 +334,7 @@ export default function PreferencesPage() {
       {/* Save Button */}
       <div className="flex justify-end gap-2">
         <Button variant="outline">Reset to Defaults</Button>
-        <Button onClick={() => toast({ title: "Preferences Saved", description: "Your settings have been saved to the cloud." })}>
+        <Button onClick={() => toast.success("Preferences Saved", { description: "Your settings have been saved to the cloud." })}>
           Save Preferences
         </Button>
       </div>

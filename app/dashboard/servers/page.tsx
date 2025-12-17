@@ -33,14 +33,14 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { getServers, deleteServer, updateServer, type ServerData } from "@/lib/server-service"
 
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { AdminAlert } from "@/components/admin-alert"
 
 export default function ServersPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === "admin"
-  const { toast } = useToast()
+
   const [viewMode, setViewMode] = useState<"table" | "grid">("table")
   const [servers, setServers] = useState<ServerData[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,10 +58,8 @@ export default function ServersPage() {
         setServers(data)
       } catch (error) {
         console.error("Error fetching servers:", error)
-        toast({
-          title: "Error loading servers",
+        toast.error("Error loading servers", {
           description: "Could not fetch servers from database",
-          variant: "destructive",
         })
       } finally {
         setLoading(false)
@@ -69,7 +67,7 @@ export default function ServersPage() {
     }
 
     fetchServers()
-  }, [toast])
+  }, [])
 
   const filteredServers = servers.filter((server) => {
     const matchesSearch =
@@ -109,17 +107,14 @@ export default function ServersPage() {
       if (server.id) {
         await updateServer(server.id, { isActive: newStatus })
         setServers(servers.map((s) => (s.id === server.id ? { ...s, isActive: newStatus } : s)))
-        toast({
-          title: newStatus ? "Server activated" : "Server deactivated",
+        toast.success(newStatus ? "Server activated" : "Server deactivated", {
           description: `${server.name} is now ${newStatus ? "active" : "inactive"}`,
         })
       }
     } catch (error) {
       console.error("Error updating server status:", error)
-      toast({
-        title: "Error updating status",
+      toast.error("Error updating status", {
         description: "Could not update server status",
-        variant: "destructive",
       })
     }
   }
@@ -136,8 +131,7 @@ export default function ServersPage() {
     try {
       await deleteServer(deleteId)
       setServers(servers.filter((server) => server.id !== deleteId))
-      toast({
-        title: "Server deleted",
+      toast.success("Server deleted", {
         description: `${deleteName} has been removed`,
       })
       setShowDeleteDialog(false)
@@ -145,10 +139,8 @@ export default function ServersPage() {
       setDeleteName("")
     } catch (error) {
       console.error("Error deleting server:", error)
-      toast({
-        title: "Error deleting server",
+      toast.error("Error deleting server", {
         description: "Could not delete the server",
-        variant: "destructive",
       })
     }
   }

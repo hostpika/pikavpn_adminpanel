@@ -12,11 +12,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox"
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react"
 import { authService } from "@/lib/auth-service"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { toast } = useToast()
+
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -32,8 +32,7 @@ export default function LoginPage() {
 
     try {
       await authService.signIn(email, password)
-      toast({
-        title: "Welcome back!",
+      toast.success("Welcome back!", {
         description: "You have successfully signed in.",
       })
       router.push("/dashboard")
@@ -47,10 +46,8 @@ export default function LoginPage() {
         message = "Too many failed attempts. Please try again later."
       }
 
-      toast({
-        title: "Login Failed",
+      toast.error("Login Failed", {
         description: message,
-        variant: "destructive"
       })
       setError(message)
     } finally {
@@ -63,17 +60,14 @@ export default function LoginPage() {
     setError("")
     try {
       await authService.signInWithGoogle()
-      toast({
-        title: "Welcome back!",
+      toast.success("Welcome back!", {
         description: "You have successfully signed in with Google.",
       })
       router.push("/dashboard")
     } catch (err: any) {
       console.error("Google login error:", err)
-      toast({
-        title: "Login Failed",
+      toast.error("Login Failed", {
         description: "Failed to sign in with Google. Please try again.",
-        variant: "destructive"
       })
     } finally {
       setIsLoading(false)

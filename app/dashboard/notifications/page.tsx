@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
 
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedNotification, setSelectedNotification] = useState<NotificationType | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const { toast } = useToast()
+
   const { user } = useAuth()
   const isAdmin = user?.role === "admin"
 
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch notifications", error)
-      toast({ title: "Error", description: "Failed to load notification history", variant: "destructive" })
+      toast.error("Error", { description: "Failed to load notification history" })
     } finally {
       setLoading(false)
     }
@@ -100,7 +100,7 @@ export default function NotificationsPage() {
 
   const handleSendNotification = async () => {
     if (!formData.title || !formData.message) {
-      toast({ title: "Error", description: "Title and message are required", variant: "destructive" })
+      toast.error("Error", { description: "Title and message are required" })
       return
     }
 
@@ -116,8 +116,7 @@ export default function NotificationsPage() {
 
       const data = await res.json()
 
-      toast({
-        title: formData.scheduleDate ? "Scheduled" : "Sent",
+      toast.success(formData.scheduleDate ? "Scheduled" : "Sent", {
         description: formData.scheduleDate ? "Notification scheduled successfully" : "Notification sent successfully"
       })
 
@@ -126,7 +125,7 @@ export default function NotificationsPage() {
       fetchNotifications() // Refresh list
     } catch (error) {
       console.error("Error sending notification:", error)
-      toast({ title: "Error", description: "Failed to send notification", variant: "destructive" })
+      toast.error("Error", { description: "Failed to send notification" })
     } finally {
       setSending(false)
     }
@@ -143,14 +142,14 @@ export default function NotificationsPage() {
     try {
       const res = await fetchWithAuth(`/api/notifications/${deleteId}`, { method: "DELETE" })
       if (res.ok) {
-        toast({ title: "Deleted", description: "Notification history deleted" })
+        toast.success("Deleted", { description: "Notification history deleted" })
         setNotifications((prev) => prev.filter((n) => n.id !== deleteId))
         setShowDeleteDialog(false)
       } else {
         throw new Error("Failed to delete")
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete notification", variant: "destructive" })
+      toast.error("Error", { description: "Failed to delete notification" })
     }
   }
 

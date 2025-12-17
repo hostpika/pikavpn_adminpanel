@@ -39,7 +39,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import {
@@ -69,7 +69,7 @@ interface Plan {
 export default function SubscriptionsConfigPage() {
     const { user } = useAuth()
     const isAdmin = user?.role === "admin"
-    const { toast } = useToast()
+
 
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
@@ -101,10 +101,8 @@ export default function SubscriptionsConfigPage() {
             }
         } catch (error) {
             console.error("Failed to fetch plans:", error)
-            toast({
-                title: "Error",
+            toast.error("Error", {
                 description: "Failed to load subscription plans.",
-                variant: "destructive",
             })
         } finally {
             setLoading(false)
@@ -134,10 +132,8 @@ export default function SubscriptionsConfigPage() {
     const handleSavePlan = async () => {
         try {
             if (!currentPlan.name || !currentPlan.googleProductId) {
-                toast({
-                    title: "Validation Error",
-                    description: "Name and Google Product ID are required.",
-                    variant: "destructive"
+                toast.error("Validation Error", {
+                    description: "Name and Google Product ID are required."
                 })
                 return
             }
@@ -161,8 +157,7 @@ export default function SubscriptionsConfigPage() {
 
             if (!res.ok) throw new Error("Failed to save plan")
 
-            toast({
-                title: "Success",
+            toast.success("Success", {
                 description: `Plan ${currentPlan.id ? "updated" : "created"} successfully.`
             })
 
@@ -170,10 +165,8 @@ export default function SubscriptionsConfigPage() {
             fetchPlans()
         } catch (error) {
             console.error("Save error:", error)
-            toast({
-                title: "Error",
-                description: "Failed to save plan settings.",
-                variant: "destructive"
+            toast.error("Error", {
+                description: "Failed to save plan settings."
             })
         }
     }
@@ -188,8 +181,7 @@ export default function SubscriptionsConfigPage() {
 
             if (!res.ok) throw new Error("Failed to delete plan")
 
-            toast({
-                title: "Success",
+            toast.success("Success", {
                 description: "Plan deleted successfully."
             })
 
@@ -197,10 +189,8 @@ export default function SubscriptionsConfigPage() {
             fetchPlans()
         } catch (error) {
             console.error("Delete error:", error)
-            toast({
-                title: "Error",
-                description: "Failed to delete plan.",
-                variant: "destructive"
+            toast.error("Error", {
+                description: "Failed to delete plan."
             })
         }
     }

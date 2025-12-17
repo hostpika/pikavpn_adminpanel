@@ -24,7 +24,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { fetchWithAuth } from "@/lib/api-client"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { AdminAlert } from "@/components/admin-alert"
 
 interface LogEntry {
@@ -41,7 +41,7 @@ interface LogEntry {
 }
 
 export default function LogsPage() {
-    const { toast } = useToast()
+
     const [logs, setLogs] = useState<LogEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [actionFilter, setActionFilter] = useState("all")
@@ -96,10 +96,8 @@ export default function LogsPage() {
             }
         } catch (error) {
             console.error("Error loading logs:", error)
-            toast({
-                title: "Error",
-                description: (error as Error).message || "Failed to load activity logs",
-                variant: "destructive",
+            toast.error("Error", {
+                description: "Failed to load activity logs",
             })
         } finally {
             setLoading(false)

@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { User, Mail, Phone, MapPin, Shield, Key, Smartphone, Copy, Check, Camera, Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { ActivityLog } from "@/lib/auth-service"
 
 export default function ProfilePage() {
@@ -26,7 +26,7 @@ export default function ProfilePage() {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
 
   const { user, updateProfile, updatePassword, getRecentActivity } = useAuth()
-  const { toast } = useToast()
+
 
   // Form State
   const [formData, setFormData] = useState({
@@ -77,16 +77,13 @@ export default function ProfilePage() {
         location: formData.location,
         bio: formData.bio
       })
-      toast({
-        title: "Profile Updated",
+      toast.success("Profile Updated", {
         description: "Your account details have been successfully saved."
       })
       loadActivity() // Refresh activity log
     } catch (error) {
-      toast({
-        title: "Update Failed",
+      toast.error("Update Failed", {
         description: "Could not update your profile. Please try again.",
-        variant: "destructive"
       })
     } finally {
       setIsLoading(false)
@@ -95,19 +92,15 @@ export default function ProfilePage() {
 
   const handlePasswordUpdate = async () => {
     if (passwordData.new !== passwordData.confirm) {
-      toast({
-        title: "Passwords do not match",
+      toast.error("Passwords do not match", {
         description: "Please ensure your new password matches the confirmation.",
-        variant: "destructive"
       })
       return
     }
 
     if (passwordData.new.length < 6) {
-      toast({
-        title: "Password too weak",
+      toast.error("Password too weak", {
         description: "Password should be at least 6 characters.",
-        variant: "destructive"
       })
       return
     }
@@ -115,18 +108,15 @@ export default function ProfilePage() {
     setIsLoading(true)
     try {
       await updatePassword(passwordData.current, passwordData.new)
-      toast({
-        title: "Password Changed",
+      toast.success("Password Changed", {
         description: "Your password has been updated securely."
       })
       setPasswordData({ current: "", new: "", confirm: "" })
       loadActivity()
     } catch (error: any) {
       console.error(error)
-      toast({
-        title: "Password Update Failed",
+      toast.error("Password Update Failed", {
         description: error.message || "Please check your current password and try again.",
-        variant: "destructive"
       })
     } finally {
       setIsLoading(false)

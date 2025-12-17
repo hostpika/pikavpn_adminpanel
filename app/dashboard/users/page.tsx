@@ -55,7 +55,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Removed direct import from user-service, using fetch now
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { fetchWithAuth } from "@/lib/api-client"
 
@@ -78,7 +78,7 @@ export interface UserData {
 }
 
 export default function UsersPage() {
-  const { toast } = useToast()
+
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
@@ -111,10 +111,8 @@ export default function UsersPage() {
       setUsers(data.users)
     } catch (error) {
       console.error("Error loading users:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to load users. Please try again.",
-        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -218,7 +216,7 @@ export default function UsersPage() {
       // Assuming API handles it or keeping placeholder for now if deleteUser import removed
       if (actionType === "delete") {
         // TODO: Implement delete in API if needed
-        toast({ title: "Not Implemented", description: "Delete via API not yet set up." })
+        toast.info("Not Implemented", { description: "Delete via API not yet set up." })
         return
       }
 
@@ -233,8 +231,7 @@ export default function UsersPage() {
       }
 
       const data = await res.json()
-      toast({
-        title: "Success",
+      toast.success("Success", {
         description: `User updated successfully. Logged as: ${data.debug?.admin}`
       })
       loadUsers() // Reload to see changes
@@ -243,10 +240,8 @@ export default function UsersPage() {
       setActionForm({ duration: "30", reason: "" })
     } catch (error: any) {
       console.error("Error performing action:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error.message || "Failed to perform action.",
-        variant: "destructive",
       })
     }
   }

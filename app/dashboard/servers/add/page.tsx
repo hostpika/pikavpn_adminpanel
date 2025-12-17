@@ -19,12 +19,12 @@ import Link from "next/link"
 import { CountrySelector } from "@/components/country-selector"
 import { parseOVPNFile } from "@/lib/ovpn-parser"
 import { addServer, uploadOVPNFile, getCountryFlag, updateServer, deleteServer } from "@/lib/server-service"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function AddServerPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState(false)
 
   const [ovpnFile, setOvpnFile] = useState<File | null>(null)
@@ -47,13 +47,11 @@ export default function AddServerPage() {
   useEffect(() => {
     if (!authLoading && user?.role !== "admin") {
       router.push("/dashboard/servers")
-      toast({
-        title: "Access Denied",
+      toast.error("Access Denied", {
         description: "You do not have permission to add servers.",
-        variant: "destructive",
       })
     }
-  }, [user, authLoading, router, toast])
+  }, [user, authLoading, router])
 
   if (authLoading) {
     return (
@@ -68,10 +66,8 @@ export default function AddServerPage() {
     if (!file) return
 
     if (!file.name.endsWith(".ovpn")) {
-      toast({
-        title: "Invalid file type",
+      toast.error("Invalid file type", {
         description: "Please upload a .ovpn file",
-        variant: "destructive",
       })
       return
     }
@@ -91,16 +87,13 @@ export default function AddServerPage() {
           port: result.config!.port,
           protocol: result.config!.protocol,
         }))
-        toast({
-          title: "File parsed successfully",
+        toast.success("File parsed successfully", {
           description: "Server details extracted from OVPN file",
         })
       } else {
         const errorMsg = result.errors.join(", ")
-        toast({
-          title: "Invalid OVPN File",
+        toast.error("Invalid OVPN File", {
           description: errorMsg || "Could not extract server details from OVPN file",
-          variant: "destructive",
         })
         // Optionally clear the invalid file
         setOvpnFile(null)
@@ -157,8 +150,7 @@ export default function AddServerPage() {
         }
       }
 
-      toast({
-        title: "Server added successfully",
+      toast.success("Server added successfully", {
         description: `${formData.name} has been added to your server list`,
       })
 
@@ -176,10 +168,8 @@ export default function AddServerPage() {
         }
       }
 
-      toast({
-        title: "Error adding server",
+      toast.error("Error adding server", {
         description: error.message || "Please check your Firebase configuration and try again",
-        variant: "destructive",
       })
     } finally {
       setLoading(false)

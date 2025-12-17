@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
 import { usePreferences } from "@/components/preferences-provider"
 import { useAuth } from "@/components/auth-provider"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -76,7 +76,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarDensity } = usePreferences()
   const pathname = usePathname()
   const router = useRouter()
-  const { toast } = useToast()
+
   const { user, signOut } = useAuth()
 
   const toggleTheme = () => {
@@ -86,16 +86,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleSignOut = async () => {
     try {
       await signOut()
-      toast({
-        title: "Signed out successfully",
+      toast.success("Signed out successfully", {
         description: "You have been logged out of your account.",
       })
       // router.push("/login") // Handled by AuthProvider now
     } catch (error) {
-      toast({
-        title: "Sign out failed",
+      toast.error("Sign out failed", {
         description: "There was an error signing you out. Please try again.",
-        variant: "destructive",
       })
     }
   }

@@ -18,12 +18,12 @@ import Link from "next/link"
 import { CountrySelector } from "@/components/country-selector"
 import { getServer, updateServer, uploadOVPNFile } from "@/lib/server-service"
 import { parseOVPNFile } from "@/lib/ovpn-parser"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function EditServerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const { toast } = useToast()
+
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [ovpnFile, setOvpnFile] = useState<File | null>(null)
@@ -67,10 +67,8 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
         }
       } catch (error) {
         console.error("Error fetching server:", error)
-        toast({
-          title: "Error loading server",
+        toast.error("Error loading server", {
           description: "Could not load server details",
-          variant: "destructive",
         })
       } finally {
         setFetching(false)
@@ -78,17 +76,15 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
     }
 
     fetchServer()
-  }, [id, toast])
+  }, [id])
 
   const handleOVPNUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     if (!file.name.endsWith(".ovpn")) {
-      toast({
-        title: "Invalid file type",
+      toast.error("Invalid file type", {
         description: "Please upload a .ovpn file",
-        variant: "destructive",
       })
       return
     }
@@ -107,16 +103,13 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
           port: result.config!.port,
           protocol: result.config!.protocol,
         }))
-        toast({
-          title: "File parsed successfully",
+        toast.success("File parsed successfully", {
           description: "Server details extracted from OVPN file",
         })
       } else {
         const errorMsg = result.errors.join(", ")
-        toast({
-          title: "Invalid OVPN File",
+        toast.error("Invalid OVPN File", {
           description: errorMsg || "Could not extract server details from OVPN file",
-          variant: "destructive",
         })
       }
     }
@@ -148,18 +141,15 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
         await uploadOVPNFile(ovpnFile, id)
       }
 
-      toast({
-        title: "Server updated successfully",
+      toast.success("Server updated successfully", {
         description: `${formData.name} has been updated`,
       })
 
       router.push("/dashboard/servers")
     } catch (error) {
       console.error("Error updating server:", error)
-      toast({
-        title: "Error updating server",
+      toast.error("Error updating server", {
         description: "Please try again",
-        variant: "destructive",
       })
     } finally {
       setLoading(false)

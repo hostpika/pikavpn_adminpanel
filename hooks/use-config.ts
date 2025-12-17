@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
 
 export interface ConfigState {
@@ -111,7 +111,7 @@ const defaultConfig: ConfigState = {
 }
 
 export function useConfig() {
-    const { toast } = useToast()
+
     const [config, setConfig] = useState<ConfigState>(defaultConfig)
     const [loading, setLoading] = useState(true)
     const [hasChanges, setHasChanges] = useState(false)
@@ -137,11 +137,11 @@ export function useConfig() {
             }
         } catch (error) {
             console.error("Error fetching config:", error)
-            toast({ title: "Error", description: "Failed to load configuration", variant: "destructive" })
+            toast.error("Error", { description: "Failed to load configuration" })
         } finally {
             setLoading(false)
         }
-    }, [toast])
+    }, [])
 
     useEffect(() => {
         fetchConfig()
@@ -169,11 +169,11 @@ export function useConfig() {
             if (!res.ok) throw new Error("Failed to save")
 
             setHasChanges(false)
-            toast({ title: "Success", description: "Configuration published successfully" })
+            toast.success("Success", { description: "Configuration published successfully" })
             return true
         } catch (error) {
             console.error("Error saving config:", error)
-            toast({ title: "Error", description: "Failed to save configuration", variant: "destructive" })
+            toast.error("Error", { description: "Failed to save configuration" })
             return false
         } finally {
             setSaving(false)
