@@ -121,10 +121,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/config",
       icon: Settings,
       children: [
-        { name: "Features", href: "/dashboard/config/features", icon: Zap },
-        { name: "VPN Settings", href: "/dashboard/config/vpn", icon: Shield },
-        { name: "UI & Branding", href: "/dashboard/config/ui", icon: Palette },
+        { name: "App Config", href: "/dashboard/config/features", icon: Zap },
         { name: "Advertising", href: "/dashboard/config/ads", icon: DollarSign },
+        { name: "UI & Branding", href: "/dashboard/config/ui", icon: Palette },
+        { name: "VPN Settings", href: "/dashboard/config/vpn", icon: Shield },
         { name: "Subscriptions", href: "/dashboard/config/subscriptions", icon: Settings },
       ]
     },
