@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         }
 
         const serverData = serverDoc.data()
-        if (!serverData?.enabled) {
+        if (!serverData?.isActive) {
             return NextResponse.json({ error: "Server is disabled" }, { status: 403 })
         }
 

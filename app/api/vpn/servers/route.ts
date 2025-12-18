@@ -8,7 +8,7 @@ export async function GET(request: Request) {
         const userPlan = (user?.plan as string) || "free"
 
         const serversRef = adminDb.collection("servers")
-        const snapshot = await serversRef.where("enabled", "==", true).get()
+        const snapshot = await serversRef.where("isActive", "==", true).get()
 
         const servers = snapshot.docs
             .map((doc) => ({ id: doc.id, ...doc.data() }))

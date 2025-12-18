@@ -38,6 +38,8 @@ export async function POST(request: Request) {
         // 1. Create Server Record
         const serverRef = await adminDb.collection("servers").add({
             ...serverData,
+            isActive: serverData.isActive ?? true, // Default to true using the correct field name
+            tier: serverData.tier || "free",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         })
