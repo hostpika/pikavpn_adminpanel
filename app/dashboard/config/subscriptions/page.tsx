@@ -94,7 +94,7 @@ export default function SubscriptionsConfigPage() {
     const fetchPlans = async () => {
         try {
             setLoading(true)
-            const res = await fetch("/api/subscriptions")
+            const res = await fetchWithAuth("/api/admin/subscriptions")
             const data = await res.json()
             if (data.plans) {
                 setPlans(data.plans)
@@ -150,7 +150,7 @@ export default function SubscriptionsConfigPage() {
             }
 
             const method = currentPlan.id ? "PUT" : "POST"
-            const res = await fetchWithAuth("/api/subscriptions", {
+            const res = await fetchWithAuth("/api/admin/subscriptions", {
                 method,
                 body: JSON.stringify(payload)
             })
@@ -175,7 +175,7 @@ export default function SubscriptionsConfigPage() {
         if (!currentPlan.id) return
 
         try {
-            const res = await fetchWithAuth(`/api/subscriptions?id=${currentPlan.id}`, {
+            const res = await fetchWithAuth(`/api/admin/subscriptions?id=${currentPlan.id}`, {
                 method: "DELETE"
             })
 
