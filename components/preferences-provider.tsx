@@ -42,7 +42,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
     const fetchPreferences = async () => {
       try {
-        const res = await fetchWithAuth("/api/preferences")
+        const res = await fetchWithAuth("/api/admin/preferences")
         if (res.ok) {
           const data = await res.json()
           const prefs = data.preferences
@@ -72,7 +72,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
       // We get current state, but better to pass the new change
       // Since react state update is async, we should be passed the full new object or specific field
       // For simplicity, we just PUSH the specific field update effectively
-      await fetchWithAuth("/api/preferences", {
+      await fetchWithAuth("/api/admin/preferences", {
         method: "POST",
         body: JSON.stringify({ preferences: newPrefs })
       })

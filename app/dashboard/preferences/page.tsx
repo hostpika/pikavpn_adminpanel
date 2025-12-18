@@ -48,7 +48,7 @@ export default function PreferencesPage() {
 
     const loadSettings = async () => {
       try {
-        const res = await fetchWithAuth("/api/preferences")
+        const res = await fetchWithAuth("/api/admin/preferences")
         if (res.ok) {
           const data = await res.json()
           const p = data.preferences
@@ -74,7 +74,7 @@ export default function PreferencesPage() {
     try {
       // Optimistic update handled by local setters
       // Save to cloud
-      await fetchWithAuth("/api/preferences", {
+      await fetchWithAuth("/api/admin/preferences", {
         method: "POST",
         body: JSON.stringify({ preferences: { [key]: value } })
       })
