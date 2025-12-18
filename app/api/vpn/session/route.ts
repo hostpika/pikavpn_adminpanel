@@ -94,8 +94,8 @@ export async function POST(request: Request) {
         // 5. Output
         return NextResponse.json({
             ovpnConfig,
-            username: `u_${userId}_${sessionId}`,
-            password: temporaryToken,
+            username: serverData.username || `u_${userId}_${sessionId}`,
+            password: serverData.password || temporaryToken,
             expiresAt,
         })
     } catch (error) {
