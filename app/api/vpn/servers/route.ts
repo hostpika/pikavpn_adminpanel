@@ -12,14 +12,8 @@ export async function GET(request: Request) {
 
         const servers = snapshot.docs
             .map((doc) => ({ id: doc.id, ...doc.data() }))
-            .filter((server: any) => {
-                // If user is guest/free, only show free servers
-                if (userPlan === "free") {
-                    return server.tier === "free"
-                }
-                // Premium users see everything
-                return true
-            })
+            // Filter out inactive servers is handled by the initial query
+            // We return ALL active servers so the client can show "locked" premium servers for upsell.
             .map((server: any) => ({
                 id: server.id,
                 country: server.country || server.name?.split("-")[0] || "Unknown",
