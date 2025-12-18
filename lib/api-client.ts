@@ -6,7 +6,13 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
         ...(options.headers as Record<string, string>),
     };
 
-    if (auth.currentUser) {
+    // Use backend token if available (Phase 1 Secure Architecture)
+    const backendToken = typeof window !== "undefined" ? localStorage.getItem("backend_token") : null;
+
+    if (backendToken) {
+        headers["Authorization"] = `Bearer ${backendToken}`;
+    } else if (auth.currentUser) {
+        // Fallback or Initial Auth for /api/auth/login
         const token = await auth.currentUser.getIdToken();
         headers["Authorization"] = `Bearer ${token}`;
     }

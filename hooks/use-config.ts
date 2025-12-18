@@ -147,7 +147,7 @@ export function useConfig() {
     const fetchConfig = useCallback(async () => {
         try {
             setLoading(true)
-            const res = await fetch("/api/config")
+            const res = await fetchWithAuth("/api/admin/config")
             if (res.ok) {
                 const data = await res.json()
                 if (data && Object.keys(data).length > 0) {
@@ -202,7 +202,7 @@ export function useConfig() {
     const saveConfig = async () => {
         try {
             setSaving(true)
-            const res = await fetchWithAuth("/api/config", {
+            const res = await fetchWithAuth("/api/admin/config", {
                 method: "POST",
                 body: JSON.stringify(config),
             })

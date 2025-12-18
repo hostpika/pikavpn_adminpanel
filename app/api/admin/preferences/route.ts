@@ -1,6 +1,5 @@
-
 import { NextResponse } from "next/server";
-import { adminAuth, adminFirestore } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/internal/firebase";
 import { getAdminFromRequest } from "@/lib/auth-helper";
 
 export async function GET(request: Request) {
@@ -10,7 +9,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const doc = await adminFirestore.collection("users").doc(admin.uid).get();
+        const doc = await adminDb.collection("users").doc(admin.uid).get();
         const data = doc.data();
 
         // Return preferences or defaults
@@ -37,7 +36,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing preferences data" }, { status: 400 });
         }
 
-        await adminFirestore.collection("users").doc(admin.uid).set({
+        await adminDb.collection("users").doc(admin.uid).set({
             preferences: preferences
         }, { merge: true });
 

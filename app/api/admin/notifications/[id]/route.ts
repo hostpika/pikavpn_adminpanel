@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { adminFirestore } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/internal/firebase";
+import { getAdminFromRequest } from "@/lib/auth-helper";
 
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const admin = await getAdminFromRequest(request);
+    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const { id } = await params;
 
@@ -12,7 +16,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Notification ID is required" }, { status: 400 });
         }
 
-        await adminFirestore.collection("notifications").doc(id).delete();
+        await adminDb.collection("notifications").doc(id).delete();
 
         return NextResponse.json({ success: true });
     } catch (error) {

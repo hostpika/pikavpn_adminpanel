@@ -8,30 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Save, Loader2, Megaphone, Ban, Plus, Trash2, Check, Copy } from "lucide-react"
-import { useConfig, AdProfile } from "@/hooks/use-config"
+import { Save, Loader2, Ban, ShieldCheck, Speaker } from "lucide-react"
+import { useConfig } from "@/hooks/use-config"
 import { useAuth } from "@/components/auth-provider"
 import { AdminAlert } from "@/components/admin-alert"
 import { toast } from "sonner"
-import { v4 as uuidv4 } from 'uuid';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import {
     Dialog,
     DialogContent,
@@ -49,110 +31,44 @@ export default function AdsConfigPage() {
     const { user } = useAuth()
     const isAdmin = user?.role === "admin"
 
-    // Local state for dialogs
-    const [profileToDelete, setProfileToDelete] = useState<string | null>(null)
-    const [profileToDuplicate, setProfileToDuplicate] = useState<AdProfile | null>(null)
     const [showPublishDialog, setShowPublishDialog] = useState(false)
 
-    // Accordions state: open the active profile by default
-    const [openItem, setOpenItem] = useState<string>("")
-
-    useEffect(() => {
-        if (!loading && config.ads?.activeProfileId && !openItem) {
-            setOpenItem(config.ads.activeProfileId)
-        }
-    }, [loading, config.ads?.activeProfileId])
-
+    // Ensure we have at least one profile initialized locally if missing for UI binding
+    const ads = config.ads || { profiles: [], settings: {} }
+    const profile = ads.profiles?.[0] || {
+        id: "default",
+        name: "Default Profile",
+        provider: "admob",
+        admob: { appId: "", bannerId: "", interstitialId: "", nativeId: "", openAppId: "", rewardedId: "" },
+        facebook: { appId: "", bannerId: "", interstitialId: "", nativeId: "", rewardedId: "" }
+    }
 
     const changes = showPublishDialog ? getChanges() : []
-    const activeProfileId = config.ads?.activeProfileId
 
-    const handleAddProfile = () => {
-        const newId = uuidv4()
-        const newProfile: AdProfile = {
-            id: newId,
-            name: `New Profile ${config.ads.profiles.length + 1}`,
-            provider: "admob",
-            admob: { appId: "", bannerId: "", interstitialId: "", nativeId: "", openAppId: "", rewardedId: "" },
-            facebook: { appId: "", bannerId: "", interstitialId: "", nativeId: "", rewardedId: "" }
+    const updateProfileField = (field: string, value: any) => {
+        const updatedProfiles = [...(ads.profiles || [])]
+        if (updatedProfiles.length === 0) {
+            updatedProfiles.push(profile)
         }
 
-        // Update config with new profile
-        const updatedProfiles = [...(config.ads.profiles || []), newProfile]
-        updateConfig("ads", "profiles", updatedProfiles)
-        setOpenItem(newId) // Open the new profile
-        toast.success("New ad profile created")
-    }
+        const currentProfile = { ...updatedProfiles[0] }
 
-    const confirmDeleteProfile = () => {
-        if (!profileToDelete) return
-
-        const updatedProfiles = config.ads.profiles.filter(p => p.id !== profileToDelete)
-        updateConfig("ads", "profiles", updatedProfiles)
-        setProfileToDelete(null)
-        toast.success("Profile deleted")
-    }
-
-    const handleDeleteClick = (e: React.MouseEvent, profileId: string) => {
-        e.stopPropagation()
-        if (config.ads.profiles.length <= 1) {
-            toast.error("Cannot delete the last profile")
-            return
+        if (field === "provider") {
+            currentProfile.provider = value
+        } else if (field.startsWith("admob.")) {
+            const key = field.split(".")[1]
+            currentProfile.admob = { ...currentProfile.admob, [key]: value }
+        } else if (field.startsWith("facebook.")) {
+            const key = field.split(".")[1]
+            currentProfile.facebook = { ...currentProfile.facebook, [key]: value }
         }
 
-        if (profileId === config.ads.activeProfileId) {
-            toast.error("Cannot delete the active profile")
-            return
-        }
-        setProfileToDelete(profileId)
-    }
-
-    const updateProfile = (profileId: string, field: keyof AdProfile | string, value: any) => {
-        const updatedProfiles = config.ads.profiles.map(p => {
-            if (p.id === profileId) {
-                if (field === "name" || field === "provider") {
-                    return { ...p, [field]: value }
-                }
-                // Handle nested updates for admob/facebook
-                if (field.startsWith("admob.")) {
-                    const key = field.split(".")[1]
-                    return { ...p, admob: { ...p.admob, [key]: value } }
-                }
-                if (field.startsWith("facebook.")) {
-                    const key = field.split(".")[1]
-                    return { ...p, facebook: { ...p.facebook, [key]: value } }
-                }
-            }
-            return p
-        })
-
+        updatedProfiles[0] = currentProfile
         updateConfig("ads", "profiles", updatedProfiles)
     }
 
-    const handleSetActive = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation()
-        updateConfig("ads", "activeProfileId", id)
-        toast.success("Active profile updated")
-    }
-
-    const confirmDuplicateProfile = () => {
-        if (!profileToDuplicate) return
-        const newId = uuidv4()
-        const duplicateProfile = {
-            ...profileToDuplicate,
-            id: newId,
-            name: `${profileToDuplicate.name} (Copy)`
-        }
-        const updatedProfiles = [...config.ads.profiles, duplicateProfile]
-        updateConfig("ads", "profiles", updatedProfiles)
-        setOpenItem(newId)
-        setProfileToDuplicate(null)
-        toast.success("Profile duplicated")
-    }
-
-    const handleDuplicateClick = (e: React.MouseEvent, profile: AdProfile) => {
-        e.stopPropagation()
-        setProfileToDuplicate(profile)
+    const updateSetting = (key: string, value: any) => {
+        updateConfig("ads", "settings", { ...ads.settings, [key]: value })
     }
 
     const handlePublish = async () => {
@@ -171,73 +87,52 @@ export default function AdsConfigPage() {
     }
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-6 max-w-5xl mx-auto pb-10">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Advertising</h1>
-                    <p className="text-muted-foreground">Manage ad networks and placements</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Ads Configuration</h1>
+                    <p className="text-muted-foreground mt-1">Manage ad network IDs and global display rules</p>
                 </div>
 
                 <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
                     <DialogTrigger asChild>
                         <Button
                             disabled={!hasChanges || saving || !isAdmin}
-                            className="bg-primary/90 hover:bg-primary shadow-lg hover:shadow-primary/25 transition-all duration-300"
+                            className="shadow-md transition-all active:scale-95"
                             size="lg"
                         >
                             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                            Publish Changes
-                            {hasChanges && (
-                                <Badge variant="secondary" className="ml-2 bg-background/20 text-primary-foreground backdrop-blur-sm">
-                                    Draft
-                                </Badge>
-                            )}
+                            Publish Configuration
+                            {hasChanges && <Badge variant="secondary" className="ml-2">Draft</Badge>}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[550px]">
                         <DialogHeader>
                             <DialogTitle>Review Changes</DialogTitle>
-                            <DialogDescription>
-                                The following changes will be applied to the configuration.
-                            </DialogDescription>
+                            <DialogDescription>Apply the following ad configuration updates.</DialogDescription>
                         </DialogHeader>
-                        <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/30">
+                        <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/20">
                             {changes.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">No changes detected.</p>
                             ) : (
                                 <div className="space-y-4">
-                                    {changes.map((change, i) => {
-                                        const formatPath = (path: string) => {
-                                            return path
-                                                .replace(/^ads\./, 'Ad Config > ')
-                                                .replace(/\.profiles/, ' > Profiles')
-                                                .replace(/\.settings/, ' > Settings')
-                                                .replace(/\["([^"]+)"\]/g, ' > $1') // Remove brackets/quotes from names
-                                                .replace(/\./g, ' > ')
-                                                .replace(/_/g, ' ')
-                                                .split(' > ')
-                                                .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-                                                .join(' > ')
-                                        }
-
-                                        return (
-                                            <div key={i} className="flex flex-col gap-1 pb-3 border-b last:border-0 last:pb-0">
-                                                <div className="font-medium text-sm text-primary break-all">
-                                                    {formatPath(change.path)}
+                                    {changes.map((change, i) => (
+                                        <div key={i} className="flex flex-col gap-1 pb-3 border-b last:border-0 last:pb-0">
+                                            <div className="font-medium text-sm text-primary break-all">
+                                                {change.path.replace("ads.", "").replace("profiles[0].", "Ad Network > ")}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="bg-muted p-2 rounded text-muted-foreground break-all border">
+                                                    <span className="font-semibold block mb-1 text-red-500/70">Old:</span>
+                                                    {String(change.oldValue)}
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                                    <div className="bg-muted/50 p-2 rounded text-muted-foreground break-all border">
-                                                        <span className="font-semibold block mb-1 text-red-500/70">Original:</span>
-                                                        {String(change.oldValue)}
-                                                    </div>
-                                                    <div className="bg-muted/50 p-2 rounded text-foreground break-all border border-green-500/20 bg-green-500/5">
-                                                        <span className="font-semibold block mb-1 text-green-500/70">New:</span>
-                                                        {String(change.newValue)}
-                                                    </div>
+                                                <div className="bg-muted p-2 rounded text-foreground break-all border border-green-500/20">
+                                                    <span className="font-semibold block mb-1 text-green-500/70">New:</span>
+                                                    {String(change.newValue)}
                                                 </div>
                                             </div>
-                                        )
-                                    })}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </ScrollArea>
@@ -245,7 +140,7 @@ export default function AdsConfigPage() {
                             <DialogClose asChild>
                                 <Button variant="outline">Cancel</Button>
                             </DialogClose>
-                            <Button onClick={handlePublish} disabled={saving} className="bg-primary">
+                            <Button onClick={handlePublish} disabled={saving}>
                                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                                 Confirm & Publish
                             </Button>
@@ -256,309 +151,236 @@ export default function AdsConfigPage() {
 
             <AdminAlert message="You need permission to modify advertising settings." />
 
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog open={!!profileToDelete} onOpenChange={(open) => !open && setProfileToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Ad Profile?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to delete this profile? This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteProfile} className="bg-destructive hover:bg-destructive/90">
-                            Delete Profile
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-6">
+                    {/* Active Provider Selection */}
+                    <Card className="border-primary/20 bg-primary/5">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <ShieldCheck className="w-5 h-5 text-primary" />
+                                Ad Network Selection
+                            </CardTitle>
+                            <CardDescription>Choose the primary ad network to display in the app</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RadioGroup
+                                value={profile.provider}
+                                onValueChange={(val) => updateProfileField("provider", val)}
+                                className="grid grid-cols-3 gap-4"
+                            >
+                                <div className="space-y-2">
+                                    <RadioGroupItem value="admob" id="prov-admob" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="prov-admob"
+                                        className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer hover:bg-white/50 dark:hover:bg-white/10 ${profile.provider === 'admob' ? 'border-primary bg-background shadow-sm ring-1 ring-primary/20' : 'border-transparent bg-muted/50'}`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${profile.provider === 'admob' ? 'bg-primary text-white' : 'bg-muted-foreground/20'}`}>
+                                            G
+                                        </div>
+                                        <span className="font-semibold text-sm">Google AdMob</span>
+                                    </Label>
+                                </div>
+                                <div className="space-y-2">
+                                    <RadioGroupItem value="facebook" id="prov-fb" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="prov-fb"
+                                        className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer hover:bg-white/50 dark:hover:bg-white/10 ${profile.provider === 'facebook' ? 'border-primary bg-background shadow-sm ring-1 ring-primary/20' : 'border-transparent bg-muted/50'}`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${profile.provider === 'facebook' ? 'bg-indigo-600 text-white' : 'bg-muted-foreground/20'}`}>
+                                            M
+                                        </div>
+                                        <span className="font-semibold text-sm">Meta Audience</span>
+                                    </Label>
+                                </div>
+                                <div className="space-y-2">
+                                    <RadioGroupItem value="none" id="prov-none" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="prov-none"
+                                        className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer hover:bg-white/50 dark:hover:bg-white/10 ${profile.provider === 'none' ? 'border-destructive bg-background shadow-sm ring-1 ring-destructive/20' : 'border-transparent bg-muted/50'}`}
+                                    >
+                                        <div className="w-8 h-8 rounded-full mb-2 flex items-center justify-center bg-muted-foreground/20">
+                                            <Ban className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-semibold text-sm text-destructive">Disabled</span>
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </CardContent>
+                    </Card>
 
-            {/* Duplicate Confirmation Dialog */}
-            <AlertDialog open={!!profileToDuplicate} onOpenChange={(open) => !open && setProfileToDuplicate(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Duplicate Ad Profile?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will create a new copy of <strong>{profileToDuplicate?.name}</strong>.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDuplicateProfile}>
-                            Duplicate
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Left Sidebar: Global Settings */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="sticky top-6 space-y-6">
-                        <Card className="border-0 shadow-xl bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40 ring-1 ring-border/50">
+                    {/* Conditional Provider Configuration */}
+                    {profile.provider === "admob" ? (
+                        <Card className="animate-in fade-in slide-in-from-top-2 duration-300">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                        <ConfigIcon className="w-4 h-4" />
-                                    </div>
-                                    Global Settings
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-yellow-500 rounded-full" />
+                                    AdMob Settings
                                 </CardTitle>
-                                <CardDescription>Rules applied to all profiles</CardDescription>
+                                <CardDescription>Configure your Google AdMob integration</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-3">
-                                    <Label className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">Ad Frequency</Label>
-                                    <Select
-                                        value={String(config.ads?.settings?.adFrequency || 3)}
-                                        onValueChange={(val) => updateConfig("ads", "settings", { ...config.ads.settings, adFrequency: Number(val) })}
-                                    >
-                                        <SelectTrigger className="bg-background/50 border-input/50 focus:ring-primary/20 transition-all">
-                                            <SelectValue placeholder="Select frequency" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="1">Every click</SelectItem>
-                                            <SelectItem value="2">Every 2nd click</SelectItem>
-                                            <SelectItem value="3">Every 3rd click</SelectItem>
-                                            <SelectItem value="5">Every 5th click</SelectItem>
-                                            <SelectItem value="10">Every 10th click</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">Frequency of interstitial ads.</p>
+                            <CardContent className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label htmlFor="admob-appId">Application ID</Label>
+                                    <Input
+                                        id="admob-appId"
+                                        value={profile.admob.appId}
+                                        onChange={(e) => updateProfileField("admob.appId", e.target.value)}
+                                        placeholder="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"
+                                        className="font-mono text-sm"
+                                    />
                                 </div>
-
-                                <Separator className="bg-border/50" />
-
-                                <div className="space-y-3">
-                                    <Label className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">Banner Position</Label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            variant={config.ads?.settings?.bannerPosition === "top" ? "default" : "outline"}
-                                            size="sm"
-                                            className="w-full"
-                                            onClick={() => updateConfig("ads", "settings", { ...config.ads.settings, bannerPosition: "top" })}
-                                        >
-                                            Top
-                                        </Button>
-                                        <Button
-                                            variant={config.ads?.settings?.bannerPosition === "bottom" ? "default" : "outline"}
-                                            size="sm"
-                                            className="w-full"
-                                            onClick={() => updateConfig("ads", "settings", { ...config.ads.settings, bannerPosition: "bottom" })}
-                                        >
-                                            Bottom
-                                        </Button>
+                                {[
+                                    { key: "openAppId", label: "App Open ID" },
+                                    { key: "bannerId", label: "Banner Placement ID" },
+                                    { key: "interstitialId", label: "Interstitial Placement ID" },
+                                    { key: "nativeId", label: "Native Advanced ID" },
+                                    { key: "rewardedId", label: "Rewarded Video ID" }
+                                ].map((unit) => (
+                                    <div key={unit.key} className="space-y-2">
+                                        <Label htmlFor={`admob-${unit.key}`}>{unit.label}</Label>
+                                        <Input
+                                            id={`admob-${unit.key}`}
+                                            value={(profile.admob as any)[unit.key]}
+                                            onChange={(e) => updateProfileField(`admob.${unit.key}`, e.target.value)}
+                                            placeholder="ca-app-pub-..."
+                                            className="font-mono text-sm"
+                                        />
                                     </div>
-                                </div>
-
-                                <Separator className="bg-border/50" />
-
-                                <div className="space-y-3">
-                                    <Label className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">Rewarded Video</Label>
-                                    <Select
-                                        value={config.ads?.settings?.rewardedVideoReward || "24h"}
-                                        onValueChange={(val) => updateConfig("ads", "settings", { ...config.ads.settings, rewardedVideoReward: val })}
-                                    >
-                                        <SelectTrigger className="bg-background/50 border-input/50 focus:ring-primary/20 transition-all">
-                                            <SelectValue placeholder="Select reward" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="1h">1 Hour Premium</SelectItem>
-                                            <SelectItem value="24h">24 Hours Premium</SelectItem>
-                                            <SelectItem value="7d">7 Days Premium</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">Premium time granted.</p>
-                                </div>
+                                ))}
                             </CardContent>
                         </Card>
-                    </div>
+                    ) : profile.provider === "facebook" ? (
+                        <Card className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-indigo-600 rounded-full" />
+                                    Meta Audience Network
+                                </CardTitle>
+                                <CardDescription>Configure Meta/Facebook Audience Network IDs</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label htmlFor="fb-appId">Application ID</Label>
+                                    <Input
+                                        id="fb-appId"
+                                        value={profile.facebook.appId}
+                                        onChange={(e) => updateProfileField("facebook.appId", e.target.value)}
+                                        className="font-mono text-sm"
+                                    />
+                                </div>
+                                {[
+                                    { key: "bannerId", label: "Banner Placement ID" },
+                                    { key: "interstitialId", label: "Interstitial Placement ID" },
+                                    { key: "nativeId", label: "Native Placement ID" },
+                                    { key: "rewardedId", label: "Rewarded Placement ID" }
+                                ].map((unit) => (
+                                    <div key={unit.key} className="space-y-2">
+                                        <Label htmlFor={`fb-${unit.key}`}>{unit.label}</Label>
+                                        <Input
+                                            id={`fb-${unit.key}`}
+                                            value={(profile.facebook as any)[unit.key]}
+                                            onChange={(e) => updateProfileField(`facebook.${unit.key}`, e.target.value)}
+                                            className="font-mono text-sm"
+                                        />
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-dashed bg-muted/20 animate-in fade-in zoom-in-95 duration-300">
+                            <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                <Ban className="w-10 h-10 mb-4 opacity-20" />
+                                <p className="text-sm font-medium">Ads are currently disabled</p>
+                                <p className="text-xs mt-1">Select a provider above to enable advertising</p>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
-                {/* Right Content: Profiles Accordion */}
-                <div className="lg:col-span-3 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                            Profiles
-                            <Badge variant="outline" className="ml-2 font-normal text-muted-foreground">
-                                {config.ads.profiles.length}
-                            </Badge>
-                        </h2>
-                        <Button onClick={handleAddProfile} className="gap-2 shadow-sm" variant="secondary">
-                            <Plus className="h-4 w-4" /> Add Profile
-                        </Button>
-                    </div>
-
-                    <Accordion type="single" collapsible value={openItem} onValueChange={setOpenItem} className="space-y-4">
-                        {config.ads?.profiles?.map(profile => {
-                            const isActive = profile.id === activeProfileId
-                            return (
-                                <AccordionItem
-                                    key={profile.id}
-                                    value={profile.id}
-                                    className={`border rounded-xl px-4 transition-all duration-300 ${isActive
-                                        ? "bg-primary/5 border-primary/20 shadow-sm"
-                                        : "bg-card border-border/50 hover:border-primary/20 hover:bg-accent/30"
-                                        } ${openItem === profile.id ? "shadow-md ring-1 ring-primary/10" : ""}`}
+                {/* Sidebar: Global Rules */}
+                <div className="space-y-6">
+                    <Card className="border-primary/20 shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Speaker className="w-5 h-5 text-primary" />
+                                Global Settings
+                            </CardTitle>
+                            <CardDescription>Rules applied at app runtime</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-3">
+                                <Label className="text-xs uppercase text-muted-foreground font-bold tracking-tight">Ad Frequency</Label>
+                                <Select
+                                    value={String(ads.settings?.adFrequency || 3)}
+                                    onValueChange={(val) => updateSetting("adFrequency", Number(val))}
                                 >
-                                    <div className="flex items-center w-full">
-                                        <AccordionTrigger className="hover:no-underline py-4 flex-1">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-2 h-2 rounded-full ring-4 ring-opacity-20 ${profile.provider === 'admob' ? 'bg-blue-500 ring-blue-500' :
-                                                        profile.provider === 'facebook' ? 'bg-indigo-500 ring-indigo-500' :
-                                                            'bg-gray-400 ring-gray-400'
-                                                    }`} />
-                                                <div className="text-left">
-                                                    <div className="font-semibold flex items-center gap-2">
-                                                        {profile.name}
-                                                        {isActive && (
-                                                            <Badge className="h-5 px-2 text-[10px] bg-primary text-primary-foreground pointer-events-none">
-                                                                Active
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground capitalize mt-0.5">
-                                                        {profile.provider === "admob" ? "Google AdMob" : profile.provider === "facebook" ? "Meta Audience Network" : "Disabled"}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </AccordionTrigger>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Frequency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">Show every time</SelectItem>
+                                        <SelectItem value="2">Show every 2nd time</SelectItem>
+                                        <SelectItem value="3">Show every 3rd time</SelectItem>
+                                        <SelectItem value="5">Show every 5th time</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                                        {/* Actions moved outside the trigger to avoid button-in-button */}
-                                        <div className="flex items-center gap-2 mr-4">
-                                            {!isActive && (
-                                                <Button size="sm" variant="ghost" className="h-8 text-xs hover:bg-primary/10 hover:text-primary" onClick={(e) => handleSetActive(e, profile.id)}>
-                                                    Set Active
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <AccordionContent className="pt-2 pb-6 px-1">
-                                        <div className="grid gap-6 pl-6 border-l-2 border-border/50 ml-2">
-                                            <div className="grid md:grid-cols-2 gap-6">
-                                                <div className="space-y-2">
-                                                    <Label>Profile Name</Label>
-                                                    <Input
-                                                        value={profile.name}
-                                                        onChange={(e) => updateProfile(profile.id, "name", e.target.value)}
-                                                        className="bg-background/50"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Ad Provider</Label>
-                                                    <RadioGroup
-                                                        value={profile.provider}
-                                                        onValueChange={(val) => updateProfile(profile.id, "provider", val)}
-                                                        className="grid grid-cols-3 gap-2"
-                                                    >
-                                                        {['admob', 'facebook', 'none'].map((p) => (
-                                                            <div key={p}>
-                                                                <RadioGroupItem value={p} id={`p-${profile.id}-${p}`} className="peer sr-only" />
-                                                                <Label
-                                                                    htmlFor={`p-${profile.id}-${p}`}
-                                                                    className={`flex flex-col items-center justify-center p-2 rounded-md border text-xs cursor-pointer hover:bg-accent ${profile.provider === p
-                                                                        ? "border-primary bg-primary/5 text-primary"
-                                                                        : "border-border bg-background text-muted-foreground"
-                                                                        }`}
-                                                                >
-                                                                    {p === 'admob' && "AdMob"}
-                                                                    {p === 'facebook' && "Meta"}
-                                                                    {p === 'none' && "Disabled"}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </RadioGroup>
-                                                </div>
-                                            </div>
+                            <Separator />
 
-                                            <Separator className="my-2" />
+                            <div className="space-y-3">
+                                <Label className="text-xs uppercase text-muted-foreground font-bold tracking-tight">Banner Position</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {["top", "bottom"].map((pos) => (
+                                        <Button
+                                            key={pos}
+                                            variant={ads.settings?.bannerPosition === pos ? "default" : "outline"}
+                                            size="sm"
+                                            className="capitalize"
+                                            onClick={() => updateSetting("bannerPosition", pos)}
+                                        >
+                                            {pos}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
 
-                                            {profile.provider === "admob" && (
-                                                <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
-                                                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                        <span className="w-1 h-3 bg-blue-500 rounded-full" />
-                                                        AdMob Units
-                                                    </h4>
-                                                    <div className="grid gap-4 md:grid-cols-2">
-                                                        {['appId', 'openAppId', 'bannerId', 'interstitialId', 'nativeId', 'rewardedId'].map((key) => (
-                                                            <div key={key} className="space-y-1.5">
-                                                                <Label className="text-xs text-muted-foreground capitalize">{key.replace(/Id$/, ' ID').replace(/([A-Z])/g, ' $1')}</Label>
-                                                                <Input
-                                                                    value={(profile.admob as any)[key]}
-                                                                    onChange={(e) => updateProfile(profile.id, `admob.${key}`, e.target.value)}
-                                                                    placeholder={`ca-app-pub-...`}
-                                                                    className="font-mono text-xs bg-muted/30"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                            <Separator />
 
-                                            {profile.provider === "facebook" && (
-                                                <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
-                                                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                        <span className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                                        Audience Network Units
-                                                    </h4>
-                                                    <div className="space-y-4">
-                                                        <div className="space-y-1.5">
-                                                            <Label className="text-xs text-muted-foreground">App ID</Label>
-                                                            <Input
-                                                                value={profile.facebook.appId}
-                                                                onChange={(e) => updateProfile(profile.id, "facebook.appId", e.target.value)}
-                                                                className="font-mono text-xs bg-muted/30"
-                                                            />
-                                                        </div>
-                                                        <div className="grid gap-4 md:grid-cols-2">
-                                                            {['bannerId', 'interstitialId', 'nativeId', 'rewardedId'].map((key) => (
-                                                                <div key={key} className="space-y-1.5">
-                                                                    <Label className="text-xs text-muted-foreground capitalize">{key.replace(/Id$/, ' Placement ID')}</Label>
-                                                                    <Input
-                                                                        value={(profile.facebook as any)[key]}
-                                                                        onChange={(e) => updateProfile(profile.id, `facebook.${key}`, e.target.value)}
-                                                                        className="font-mono text-xs bg-muted/30"
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                            <div className="space-y-3">
+                                <Label className="text-xs uppercase text-muted-foreground font-bold tracking-tight">Rewarded Reward</Label>
+                                <Select
+                                    value={ads.settings?.rewardedVideoReward || "24h"}
+                                    onValueChange={(val) => updateSetting("rewardedVideoReward", val)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Reward" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1h">1 Hour Premium</SelectItem>
+                                        <SelectItem value="24h">24 Hours Premium</SelectItem>
+                                        <SelectItem value="48h">48 Hours Premium</SelectItem>
+                                        <SelectItem value="7d">7 Days Premium</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                                            {profile.provider === "none" && (
-                                                <div className="py-8 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-muted/20 rounded-lg">
-                                                    <Ban className="h-8 w-8 mb-2" />
-                                                    <span className="text-sm">Ads are disabled for this profile</span>
-                                                </div>
-                                            )}
-
-                                            <div className="flex justify-end gap-2 pt-4">
-                                                <Button variant="outline" size="sm" onClick={(e) => handleDuplicateClick(e, profile)}>
-                                                    <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
-                                                </Button>
-                                                {!isActive && config.ads.profiles.length > 1 && (
-                                                    <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={(e) => handleDeleteClick(e, profile.id)}>
-                                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            )
-                        })}
-                    </Accordion>
+                    <Card className="bg-muted/30 border-dashed">
+                        <CardContent className="pt-6">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 rounded bg-primary/10">
+                                    <ShieldCheck className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="text-xs text-muted-foreground leading-relaxed">
+                                    Note: Changes here only affect the primary ad profile. The mobile client must be configured to fetch the first entry from the profiles array.
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
-    )
-}
-
-function ConfigIcon({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" />
-        </svg>
     )
 }

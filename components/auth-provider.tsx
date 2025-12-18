@@ -35,35 +35,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
-                    // Fetch additional details from Firestore
-                    const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
-                    const userData = userDoc.data()
+                    // Phase 1 Secure Architecture: Exchange Firebase ID Token for Backend JWT
+                    const idToken = await firebaseUser.getIdToken()
+                    const response = await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ firebaseIdToken: idToken }),
+                    })
 
+                    if (!response.ok) throw new Error("Backend login failed")
+
+                    const { accessToken } = await response.json()
+                    localStorage.setItem("backend_token", accessToken)
+
+                    // Decode token or fetch user from backend (for now manually set from firebase info)
+                    // In a more robust implementation, we'd fetch the full user profile from /api/admin/profile or similar
+                    // But for now, we'll use the Firebase user info and assume the backend handled verification.
                     const appUser: User = {
                         uid: firebaseUser.uid,
                         email: firebaseUser.email || "",
                         displayName: firebaseUser.displayName || "Admin User",
                         photoURL: firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
-                        phoneNumber: userData?.phoneNumber || "",
-                        bio: userData?.bio || "",
-                        location: userData?.location || "",
-                        role: userData?.role || "user"
+                        role: "admin" // For the admin panel, we assume the user logged in is an admin
                     }
                     setUser(appUser)
                 } catch (error) {
-                    console.error("Error fetching user details", error)
-                    // Fallback to basic auth user if Firestore fails
-                    const appUser: User = {
-                        uid: firebaseUser.uid,
-                        email: firebaseUser.email || "",
-                        displayName: firebaseUser.displayName || "Admin User",
-                        photoURL: firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
-                        role: "user"
-                    }
-                    setUser(appUser)
+                    console.error("Error during backend authentication", error)
+                    setUser(null)
+                    localStorage.removeItem("backend_token")
                 }
             } else {
                 setUser(null)
+                localStorage.removeItem("backend_token")
             }
             setLoading(false)
         })

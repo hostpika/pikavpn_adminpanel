@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { adminFirestore } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/internal/firebase";
+import { getAdminFromRequest } from "@/lib/auth-helper";
 
 export async function GET(request: Request) {
+    const admin = await getAdminFromRequest(request);
+    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     try {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get("limit") || "50");
@@ -11,7 +14,7 @@ export async function GET(request: Request) {
         const toDate = searchParams.get("to");
         const lastTimestamp = searchParams.get("lastTimestamp");
 
-        let query = adminFirestore.collection("activity_logs").orderBy("timestamp", "desc");
+        let query = adminDb.collection("activity_logs").orderBy("timestamp", "desc");
 
         if (action && action !== "all") {
             query = query.where("action", "==", action);

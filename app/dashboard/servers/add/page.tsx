@@ -18,7 +18,7 @@ import { ArrowLeft, Save, FileText, Loader2, Globe, Server, Shield, Wifi, Lock, 
 import Link from "next/link"
 import { CountrySelector } from "@/components/country-selector"
 import { parseOVPNFile } from "@/lib/ovpn-parser"
-import { addServer, uploadOVPNFile, getCountryFlag, updateServer, deleteServer } from "@/lib/server-service"
+import { addServer, getCountryFlag, updateServer, deleteServer } from "@/lib/server-service"
 import { toast } from "sonner"
 
 export default function AddServerPage() {
@@ -106,11 +106,18 @@ export default function AddServerPage() {
     e.preventDefault()
     setLoading(true)
 
-    let createdServerId: string | null = null
-
     try {
-      // 1. Create Server Document
-      const serverId = await addServer({
+      let ovpnFileContent = ""
+      let ovpnFileName = ""
+
+      if (ovpnFile) {
+        const { fileToBase64 } = await import("@/lib/server-service")
+        ovpnFileContent = await fileToBase64(ovpnFile)
+        ovpnFileName = ovpnFile.name
+      }
+
+      // 1. Create Server and upload OVPN in one go (Secure Backend Phase 1)
+      await addServer({
         name: formData.name,
         country: formData.country,
         flag: getCountryFlag(formData.country),
@@ -128,27 +135,9 @@ export default function AddServerPage() {
         isActive: formData.isActive,
         username: formData.username,
         password: formData.password,
+        ovpnFileContent,
+        ovpnFileName,
       })
-
-      createdServerId = serverId
-      console.log("Server created with ID:", serverId)
-
-      // 2. Upload OVPN File (if exists) and Update Server
-      if (ovpnFile) {
-        try {
-          const downloadURL = await uploadOVPNFile(ovpnFile, serverId)
-          console.log("OVPN uploaded, URL:", downloadURL)
-
-          await updateServer(serverId, {
-            ovpnFileUrl: downloadURL
-          })
-          console.log("Server updated with OVPN URL")
-
-        } catch (uploadError) {
-          console.error("Failed to upload OVPN:", uploadError)
-          throw new Error("Failed to upload OVPN file. Server creation rolled back.")
-        }
-      }
 
       toast.success("Server added successfully", {
         description: `${formData.name} has been added to your server list`,
@@ -157,19 +146,8 @@ export default function AddServerPage() {
       router.push("/dashboard/servers")
     } catch (error: any) {
       console.error("Error adding server:", error)
-
-      // Rollback: Delete the created server doc if anything failed
-      if (createdServerId) {
-        try {
-          await deleteServer(createdServerId)
-          console.log("Rolled back: Deleted server", createdServerId)
-        } catch (cleanupError) {
-          console.error("Failed to rollback server deletion:", cleanupError)
-        }
-      }
-
       toast.error("Error adding server", {
-        description: error.message || "Please check your Firebase configuration and try again",
+        description: error.message || "Please check your configuration and try again",
       })
     } finally {
       setLoading(false)

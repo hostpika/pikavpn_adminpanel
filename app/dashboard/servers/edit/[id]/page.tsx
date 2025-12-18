@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { ArrowLeft, Save, Loader2, FileText } from "lucide-react"
 import Link from "next/link"
 import { CountrySelector } from "@/components/country-selector"
-import { getServer, updateServer, uploadOVPNFile } from "@/lib/server-service"
+import { getServer, updateServer } from "@/lib/server-service"
 import { parseOVPNFile } from "@/lib/ovpn-parser"
 import { toast } from "sonner"
 
@@ -121,6 +121,15 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
     setLoading(true)
 
     try {
+      let ovpnFileContent = ""
+      let ovpnFileName = ""
+
+      if (ovpnFile) {
+        const { fileToBase64 } = await import("@/lib/server-service")
+        ovpnFileContent = await fileToBase64(ovpnFile)
+        ovpnFileName = ovpnFile.name
+      }
+
       await updateServer(id, {
         name: formData.name,
         country: formData.country,
@@ -135,11 +144,9 @@ export default function EditServerPage({ params }: { params: Promise<{ id: strin
         isActive: formData.isActive,
         username: formData.username,
         password: formData.password,
+        ovpnFileContent,
+        ovpnFileName,
       })
-
-      if (ovpnFile) {
-        await uploadOVPNFile(ovpnFile, id)
-      }
 
       toast.success("Server updated successfully", {
         description: `${formData.name} has been updated`,
