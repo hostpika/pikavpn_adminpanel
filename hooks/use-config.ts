@@ -41,7 +41,6 @@ export interface ConfigState {
         killswitch: boolean
         splitTunnel: boolean
         autoReconnect: boolean
-        ads: boolean
         subscriptions: boolean
         experimental: boolean
     }
@@ -62,8 +61,9 @@ export interface ConfigState {
     ads: AdsConfig
     version: {
         currentVersion: string
-        minimumVersion: string
-        forceUpdate: string
+        minVersion: string
+        cacheVersion: number
+        maintenanceMode: boolean
         updateMessage: string
     }
 }
@@ -94,7 +94,6 @@ const defaultConfig: ConfigState = {
         killswitch: true,
         splitTunnel: true,
         autoReconnect: true,
-        ads: true,
         subscriptions: true,
         experimental: false,
     },
@@ -123,8 +122,9 @@ const defaultConfig: ConfigState = {
     },
     version: {
         currentVersion: "2.5.0",
-        minimumVersion: "2.0.0",
-        forceUpdate: "disabled",
+        minVersion: "2.0.0",
+        cacheVersion: 1,
+        maintenanceMode: false,
         updateMessage: "Please update to the latest version for the best experience.",
     },
 }

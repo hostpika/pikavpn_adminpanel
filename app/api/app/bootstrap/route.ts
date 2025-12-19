@@ -11,13 +11,17 @@ export async function GET() {
             configCollection.doc("version").get(),
         ])
 
-        const features = featuresDoc.exists ? featuresDoc.data() : { freeVpn: true, premiumVpn: false }
+        const featuresData = featuresDoc.exists ? featuresDoc.data() : { freeVpn: true, premiumVpn: false }
+
+        // Remove ads from features as it has its own endpoint
+        const { ads, ...features } = featuresData as any
         const version = versionDoc.exists ? versionDoc.data() : { forceUpdate: false, message: null }
 
         return NextResponse.json({
             features,
-            forceUpdate: version?.forceUpdate || false,
-            message: version?.message || null,
+            min_version: version?.minVersion || "1.0.0",
+            cache_version: version?.cacheVersion || 1,
+            maintenance_mode: version?.maintenanceMode || false,
             timestamp: new Date().toISOString(),
         })
     } catch (error) {

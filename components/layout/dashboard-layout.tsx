@@ -121,7 +121,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/config",
       icon: Settings,
       children: [
-        { name: "App Config", href: "/dashboard/config/features", icon: Zap },
+        { name: "App Config", href: "/dashboard/config/app", icon: Zap },
         { name: "Advertising", href: "/dashboard/config/ads", icon: DollarSign },
         { name: "UI & Branding", href: "/dashboard/config/ui", icon: Palette },
         { name: "VPN Settings", href: "/dashboard/config/vpn", icon: Shield },
