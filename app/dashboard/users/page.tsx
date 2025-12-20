@@ -105,7 +105,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/users")
+      const res = await fetchWithAuth("/api/admin/users")
       if (!res.ok) throw new Error("Failed to fetch users")
       const data = await res.json()
       setUsers(data.users)
@@ -190,9 +190,9 @@ export default function UsersPage() {
     if (!selectedUser || !actionType) return
 
     try {
-      let endpoint = "/api/users"
+      let endpoint = "/api/admin/users"
       let method = "PUT"
-      let payload: any = { userId: selectedUser.id || selectedUser.uid } // Handle both id formats
+      let payload: any = { uid: selectedUser.id || selectedUser.uid } // Handle both id formats
 
       if (actionType === "suspend") {
         payload.action = "ban"

@@ -57,7 +57,7 @@ export default function LogsPage() {
     const loadLogs = async (cursor: string | null = null) => {
         try {
             setLoading(true)
-            let query = `/api/logs?limit=${LIMIT}`
+            let query = `/api/admin/logs?limit=${LIMIT}`
 
             if (cursor) {
                 query += `&lastTimestamp=${cursor}`
