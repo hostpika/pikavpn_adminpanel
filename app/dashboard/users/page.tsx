@@ -67,7 +67,7 @@ export interface UserData {
   email: string
   avatar?: string
   role: "admin" | "user"
-  status: "active" | "trial" | "premium" | "suspended"
+  status: "active" | "deleted" | "premium" | "suspended"
   plan: "free" | "basic" | "premium"
   registrationDate: string
   lastLogin: string
@@ -126,6 +126,8 @@ export default function UsersPage() {
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(user.status)
     const matchesPlan = planFilter.length === 0 || planFilter.includes(user.plan)
     const matchesRole = roleFilter.length === 0 || roleFilter.includes(user.role)
+    // Removed excludeGuests from dependency array in effect, but logic is fine here.
+    // Guests check: provider === 'anonymous'
     const matchesGuest = !excludeGuests || user.provider !== "anonymous"
     return matchesSearch && matchesStatus && matchesPlan && matchesRole && matchesGuest
   })
@@ -149,8 +151,8 @@ export default function UsersPage() {
     switch (status) {
       case "active":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20"
-      case "trial":
-        return "bg-amber-500/10 text-amber-500 border-amber-500/20"
+      case "deleted":
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20"
       case "premium":
         return "bg-purple-500/10 text-purple-500 border-purple-500/20"
       case "suspended":
@@ -164,8 +166,8 @@ export default function UsersPage() {
     switch (status) {
       case "active":
         return <CheckCircle2 className="h-3 w-3" />
-      case "trial":
-        return <Clock className="h-3 w-3" />
+      case "deleted":
+        return <Trash2 className="h-3 w-3" />
       case "premium":
         return <Crown className="h-3 w-3" />
       case "suspended":
@@ -250,7 +252,7 @@ export default function UsersPage() {
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
     premium: users.filter((u) => u.status === "premium").length,
-    trial: users.filter((u) => u.status === "trial").length,
+    deleted: users.filter((u) => u.status === "deleted").length,
     suspended: users.filter((u) => u.status === "suspended").length,
   }
 
@@ -307,11 +309,11 @@ export default function UsersPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Trial</p>
-                  <p className="text-3xl font-bold tracking-tight">{stats.trial}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Deleted</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.deleted}</p>
                 </div>
-                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center shadow-inner">
-                  <Clock className="h-6 w-6 text-amber-500" />
+                <div className="w-12 h-12 bg-gray-500/10 rounded-2xl flex items-center justify-center shadow-inner">
+                  <Trash2 className="h-6 w-6 text-gray-500" />
                 </div>
               </div>
             </CardContent>

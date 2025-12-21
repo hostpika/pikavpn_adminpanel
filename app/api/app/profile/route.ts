@@ -35,3 +35,27 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
     }
 }
+
+
+export async function DELETE(request: Request) {
+    try {
+        const user = await getUserFromRequest(request)
+        if (!user || !user.uid) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
+        // Soft delete: Update status to 'deleted'
+        await adminDb.collection("users").doc(user.uid as string).update({
+            status: "deleted",
+            deletedAt: new Date().toISOString()
+        })
+
+        // We do NOT delete from Firebase Auth to maintain the record as requested.
+        // The client should handle sign-out.
+
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        console.error("Error deleting profile:", error)
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    }
+}
