@@ -36,9 +36,10 @@ export async function GET(request: Request) {
                 avatar: authUser.photoURL || firestoreData.photoURL || "",
                 role: firestoreData.role || "user",
                 status: status,
-                tier: firestoreData.tier || firestoreData.plan || "free",
+                plan: firestoreData.plan || firestoreData.tier || "free",
                 registrationDate: authUser.metadata.creationTime ? new Date(authUser.metadata.creationTime).toLocaleDateString() : "Unknown",
                 lastLogin: authUser.metadata.lastSignInTime ? new Date(authUser.metadata.lastSignInTime).toLocaleDateString() : "Never",
+                provider: authUser.providerData[0]?.providerId || "anonymous",
             }
         })
 
@@ -54,20 +55,47 @@ export async function PUT(request: Request) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     try {
-        const { uid, ...userData } = await request.json()
+        const body = await request.json()
+        const { uid, action, payload } = body
+
         if (!uid) return NextResponse.json({ error: "Missing UID" }, { status: 400 })
 
-        await adminDb.collection("users").doc(uid).set(userData, { merge: true })
-
-        if (userData.status === "suspended") {
+        // Handle different action types
+        if (action === "ban") {
+            await adminDb.collection("users").doc(uid).set({ status: "suspended" }, { merge: true })
             await adminAuth.updateUser(uid, { disabled: true })
-        } else if (userData.status === "active" || userData.status === "premium") {
+            await logAdminAction(admin.uid as string, admin.email as string, "BAN", "USER", `Banned user ${uid}`, uid)
+        }
+        else if (action === "unban") {
+            await adminDb.collection("users").doc(uid).set({ status: "active" }, { merge: true })
             await adminAuth.updateUser(uid, { disabled: false })
+            await logAdminAction(admin.uid as string, admin.email as string, "UNBAN", "USER", `Unbanned user ${uid}`, uid)
+        }
+        else if (action === "set_plan") {
+            // payload: { plan: "premium" | "free" }
+            const plan = payload?.plan || "free"
+            // Only update plan, preserve existing status (active/suspended/etc)
+            await adminDb.collection("users").doc(uid).set({ plan: plan }, { merge: true })
+            await logAdminAction(admin.uid as string, admin.email as string, "UPDATE_PLAN", "USER", `Set user ${uid} plan to ${plan}`, uid)
+        }
+        else if (action === "set_role") {
+            // payload: { role: "admin" | "user" }
+            const role = payload?.role || "user"
+            await adminDb.collection("users").doc(uid).set({ role }, { merge: true })
+            await logAdminAction(admin.uid as string, admin.email as string, "UPDATE_ROLE", "USER", `Set user ${uid} role to ${role}`, uid)
+        }
+        else {
+            // Fallback for direct updates if needed (legacy or other fields)
+            const { uid: _u, ...rest } = body
+            if (Object.keys(rest).length > 0) {
+                await adminDb.collection("users").doc(uid).set(rest, { merge: true })
+            }
         }
 
-        await logAdminAction(admin.uid as string, admin.email as string, "UPDATE", "USER", `Updated user ${uid}`, uid)
-
-        return NextResponse.json({ success: true })
+        return NextResponse.json({
+            success: true,
+            debug: { admin: admin.email }
+        })
     } catch (error) {
         console.error("Admin Users PUT Error:", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })

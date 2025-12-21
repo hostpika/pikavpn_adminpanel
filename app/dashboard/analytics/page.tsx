@@ -459,14 +459,14 @@ export default function AnalyticsPage() {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { tier: "Free Users", users: 18500, revenue: 0, percentage: 55 },
-                  { tier: "Trial Users", users: 3200, revenue: 0, percentage: 9 },
-                  { tier: "Basic Subscribers", users: 7850, revenue: 39175, percentage: 23 },
-                  { tier: "Premium Subscribers", users: 4323, revenue: 43199, percentage: 13 },
+                  { plan: "Free Users", users: 18500, revenue: 0, percentage: 55 },
+                  { plan: "Trial Users", users: 3200, revenue: 0, percentage: 9 },
+                  { plan: "Basic Subscribers", users: 7850, revenue: 39175, percentage: 23 },
+                  { plan: "Premium Subscribers", users: 4323, revenue: 43199, percentage: 13 },
                 ].map((segment) => (
-                  <div key={segment.tier} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
+                  <div key={segment.plan} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
                     <div>
-                      <div className="font-semibold mb-1">{segment.tier}</div>
+                      <div className="font-semibold mb-1">{segment.plan}</div>
                       <div className="text-sm text-muted-foreground">
                         {segment.users.toLocaleString()} users ({segment.percentage}%)
                       </div>
@@ -515,7 +515,7 @@ export default function AnalyticsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Free Tier Traffic</CardTitle>
+                <CardTitle className="text-sm font-medium">Free Plan Traffic</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>

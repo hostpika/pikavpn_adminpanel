@@ -244,7 +244,7 @@ export default function LogsPage() {
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{log.adminEmail}</span>
-                                                    <span className="text-xs text-muted-foreground">{log.adminId.substring(0, 8)}...</span>
+                                                    <span className="text-xs text-muted-foreground">{log.adminId ? log.adminId.substring(0, 8) + '...' : ''}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>

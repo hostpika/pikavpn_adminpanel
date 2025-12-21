@@ -7,7 +7,7 @@ export interface UserData {
   name: string
   avatar?: string
   status: "active" | "trial" | "premium" | "suspended"
-  tier: "free" | "basic" | "premium" | "user"
+  plan: "free" | "basic" | "premium" | "user"
   registrationDate: string
   lastLogin: string
   totalConnectionTime: string
@@ -61,7 +61,7 @@ export async function getUserStats() {
   return {
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
-    premium: users.filter((u) => u.status === "premium" || u.tier === "premium").length,
+    premium: users.filter((u) => u.status === "premium" || u.plan === "premium").length,
     trial: users.filter((u) => u.status === "trial").length,
     suspended: users.filter((u) => u.status === "suspended").length,
   }

@@ -68,7 +68,7 @@ export interface UserData {
   avatar?: string
   role: "admin" | "user"
   status: "active" | "trial" | "premium" | "suspended"
-  tier: "free" | "basic" | "premium"
+  plan: "free" | "basic" | "premium"
   registrationDate: string
   lastLogin: string
   provider?: string
@@ -84,7 +84,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string[]>([])
-  const [tierFilter, setTierFilter] = useState<string[]>([])
+  const [planFilter, setPlanFilter] = useState<string[]>([])
   const [roleFilter, setRoleFilter] = useState<string[]>([])
   const [excludeGuests, setExcludeGuests] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
@@ -124,10 +124,10 @@ export default function UsersPage() {
       (user.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.name || "").toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(user.status)
-    const matchesTier = tierFilter.length === 0 || tierFilter.includes(user.tier)
+    const matchesPlan = planFilter.length === 0 || planFilter.includes(user.plan)
     const matchesRole = roleFilter.length === 0 || roleFilter.includes(user.role)
     const matchesGuest = !excludeGuests || user.provider !== "anonymous"
-    return matchesSearch && matchesStatus && matchesTier && matchesRole && matchesGuest
+    return matchesSearch && matchesStatus && matchesPlan && matchesRole && matchesGuest
   })
 
   // Pagination Logic
@@ -143,7 +143,7 @@ export default function UsersPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, statusFilter, tierFilter, roleFilter, excludeGuests])
+  }, [searchQuery, statusFilter, planFilter, roleFilter, excludeGuests])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -350,21 +350,21 @@ export default function UsersPage() {
                     <Button variant="outline" className="gap-2 border-dashed">
                       <Filter className="h-4 w-4" />
                       Filters
-                      {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
+                      {(statusFilter.length > 0 || planFilter.length > 0 || roleFilter.length > 0) && (
                         <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal lg:hidden">
-                          {statusFilter.length + tierFilter.length + roleFilter.length}
+                          {statusFilter.length + planFilter.length + roleFilter.length}
                         </Badge>
                       )}
-                      {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
+                      {(statusFilter.length > 0 || planFilter.length > 0 || roleFilter.length > 0) && (
                         <div className="hidden lg:flex gap-1 ml-1">
                           {statusFilter.length > 0 && (
                             <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                               {statusFilter.length} status
                             </Badge>
                           )}
-                          {tierFilter.length > 0 && (
+                          {planFilter.length > 0 && (
                             <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                              {tierFilter.length} tier
+                              {planFilter.length} plan
                             </Badge>
                           )}
                           {roleFilter.length > 0 && (
@@ -402,28 +402,6 @@ export default function UsersPage() {
                             Active
                           </DropdownMenuCheckboxItem>
                           <DropdownMenuCheckboxItem
-                            checked={statusFilter.includes("trial")}
-                            onCheckedChange={(checked) =>
-                              setStatusFilter(
-                                checked ? [...statusFilter, "trial"] : statusFilter.filter((s) => s !== "trial"),
-                              )
-                            }
-                          >
-                            <Clock className="mr-2 h-4 w-4 text-amber-500" />
-                            Trial
-                          </DropdownMenuCheckboxItem>
-                          <DropdownMenuCheckboxItem
-                            checked={statusFilter.includes("premium")}
-                            onCheckedChange={(checked) =>
-                              setStatusFilter(
-                                checked ? [...statusFilter, "premium"] : statusFilter.filter((s) => s !== "premium"),
-                              )
-                            }
-                          >
-                            <Crown className="mr-2 h-4 w-4 text-purple-500" />
-                            Premium
-                          </DropdownMenuCheckboxItem>
-                          <DropdownMenuCheckboxItem
                             checked={statusFilter.includes("suspended")}
                             onCheckedChange={(checked) =>
                               setStatusFilter(
@@ -441,26 +419,26 @@ export default function UsersPage() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
                         <Zap className="mr-2 h-4 w-4" />
-                        <span>Tier</span>
-                        {tierFilter.length > 0 && (
+                        <span>Plan</span>
+                        {planFilter.length > 0 && (
                           <span className="ml-auto mr-2 flex h-2 w-2 rounded-full bg-primary" />
                         )}
                       </DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent className="p-0">
                           <DropdownMenuCheckboxItem
-                            checked={tierFilter.includes("free")}
+                            checked={planFilter.includes("free")}
                             onCheckedChange={(checked) =>
-                              setTierFilter(checked ? [...tierFilter, "free"] : tierFilter.filter((t) => t !== "free"))
+                              setPlanFilter(checked ? [...planFilter, "free"] : planFilter.filter((t) => t !== "free"))
                             }
                           >
                             <Zap className="mr-2 h-4 w-4 text-blue-500" />
                             Free
                           </DropdownMenuCheckboxItem>
                           <DropdownMenuCheckboxItem
-                            checked={tierFilter.includes("premium")}
+                            checked={planFilter.includes("premium")}
                             onCheckedChange={(checked) =>
-                              setTierFilter(checked ? [...tierFilter, "premium"] : tierFilter.filter((t) => t !== "premium"))
+                              setPlanFilter(checked ? [...planFilter, "premium"] : planFilter.filter((t) => t !== "premium"))
                             }
                           >
                             <Crown className="mr-2 h-4 w-4 text-purple-500" />
@@ -502,14 +480,14 @@ export default function UsersPage() {
                       </DropdownMenuPortal>
                     </DropdownMenuSub>
 
-                    {(statusFilter.length > 0 || tierFilter.length > 0 || roleFilter.length > 0) && (
+                    {(statusFilter.length > 0 || planFilter.length > 0 || roleFilter.length > 0) && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="justify-center text-center font-medium"
                           onClick={() => {
                             setStatusFilter([])
-                            setTierFilter([])
+                            setPlanFilter([])
                             setRoleFilter([])
                           }}
                         >
@@ -550,7 +528,7 @@ export default function UsersPage() {
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No users found</h3>
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery || statusFilter.length > 0 || tierFilter.length > 0
+                  {searchQuery || statusFilter.length > 0 || planFilter.length > 0
                     ? "Try adjusting your filters"
                     : "Users will appear here once they register"}
                 </p>
@@ -562,7 +540,7 @@ export default function UsersPage() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Tier</TableHead>
+                      <TableHead>Plan</TableHead>
                       <TableHead>Registered</TableHead>
                       <TableHead>Last Login</TableHead>
                       <TableHead>Usage</TableHead>
@@ -600,9 +578,9 @@ export default function UsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.tier === "premium" ? (
+                          {user.plan === "premium" ? (
                             <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">Premium</Badge>
-                          ) : user.tier === "basic" ? (
+                          ) : user.plan === "basic" ? (
                             <Badge variant="secondary">Basic</Badge>
                           ) : (
                             <Badge variant="outline">Free</Badge>
@@ -646,7 +624,7 @@ export default function UsersPage() {
                                     <Crown className="mr-2 h-4 w-4" />
                                     Grant Premium
                                   </DropdownMenuItem>
-                                  {(user.tier === "premium" || user.status === "premium") && (
+                                  {(user.plan === "premium" || user.status === "premium") && (
                                     <DropdownMenuItem onClick={() => openActionDialog(user, "revoke_premium")}>
                                       <XCircle className="mr-2 h-4 w-4" />
                                       Remove Premium
@@ -764,8 +742,8 @@ export default function UsersPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Subscription Tier</Label>
-                      <div className="font-semibold capitalize">{selectedUser.tier}</div>
+                      <Label className="text-xs text-muted-foreground">Subscription Plan</Label>
+                      <div className="font-semibold capitalize">{selectedUser.plan}</div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Registered</Label>

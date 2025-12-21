@@ -46,7 +46,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const onlineServers = servers.filter((s) => s.status === "online").length
   const totalServers = servers.length
   const activeUsers = users.filter((u) => u.status === "active" || u.status === "premium").length
-  const premiumUsers = users.filter((u) => u.tier === "premium").length
+  const premiumUsers = users.filter((u) => u.plan === "premium").length
 
   // Calculate monthly revenue (assuming $10/month per premium user)
   const monthlyRevenue = premiumUsers * 10
@@ -121,7 +121,7 @@ export async function getUserGrowthData(): Promise<UserGrowthDataPoint[]> {
       const date = new Date(user.registrationDate)
       const key = date.toLocaleString('default', { month: 'short' })
       if (months[key]) {
-        if (user.tier === 'premium') {
+        if (user.plan === 'premium') {
           months[key].premium++
         } else {
           months[key].free++

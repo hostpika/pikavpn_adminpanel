@@ -29,7 +29,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User profile NOT found" }, { status: 404 })
         }
         const userData = userDoc.data()
-        const currentPlan = userData?.plan || "free"
+        const currentPlan = userData?.plan || userData?.tier || "free"
 
         // 3. Fetch server data
         const serverDoc = await adminDb.collection("servers").doc(serverId).get()
