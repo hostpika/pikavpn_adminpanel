@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
     Hash, Layout, Globe, Server, Terminal, Copy, Check, ChevronRight,
@@ -26,7 +26,7 @@ type DocSection = {
 
 import { useSearchParams } from "next/navigation"
 
-export default function DocsPage() {
+function DocsContent() {
     const searchParams = useSearchParams()
     const activeSection = searchParams.get("section") || "overview"
 
@@ -85,6 +85,14 @@ export default function DocsPage() {
                 </Card>
             </div>
         </div>
+    )
+}
+
+export default function DocsPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center p-8">Loading documentation...</div>}>
+            <DocsContent />
+        </Suspense>
     )
 }
 

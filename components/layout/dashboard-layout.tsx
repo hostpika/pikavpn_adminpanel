@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -348,7 +348,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
-        <SidebarContent />
+        <Suspense fallback={<div />}>
+          <SidebarContent />
+        </Suspense>
       </aside>
 
       {/* Mobile Sidebar */}
@@ -370,7 +372,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <SidebarContent hideHeader />
+            <Suspense fallback={<div />}>
+              <SidebarContent hideHeader />
+            </Suspense>
           </aside>
         </div>
       )}
