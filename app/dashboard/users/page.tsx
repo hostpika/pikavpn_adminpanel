@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -94,6 +95,9 @@ export default function UsersPage() {
 
   const [actionForm, setActionForm] = useState({ duration: "30", reason: "" })
 
+  const [selectedUids, setSelectedUids] = useState<string[]>([])
+  const [confirmInput, setConfirmInput] = useState("")
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -145,7 +149,22 @@ export default function UsersPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
+    setSelectedUids([]) // Clear selection when filters change
   }, [searchQuery, statusFilter, planFilter, roleFilter, excludeGuests])
+
+  const toggleSelectAll = () => {
+    if (selectedUids.length === paginatedUsers.length) {
+      setSelectedUids([])
+    } else {
+      setSelectedUids(paginatedUsers.map(u => u.uid || u.id))
+    }
+  }
+
+  const toggleSelectUser = (uid: string) => {
+    setSelectedUids(prev =>
+      prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
+    )
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -182,19 +201,29 @@ export default function UsersPage() {
     setShowDetailDialog(true)
   }
 
-  const openActionDialog = (user: UserData, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium") => {
+  const openActionDialog = (user: UserData | null, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium") => {
     setSelectedUser(user)
     setActionType(action)
+    setConfirmInput("")
     setShowActionDialog(true)
   }
 
   const handleAction = async () => {
-    if (!selectedUser || !actionType) return
+    if (!actionType || (!selectedUser && selectedUids.length === 0)) return
+
+    // Confirmation check for delete
+    if (actionType === "delete") {
+      const expectedConfirm = selectedUids.length > 0 ? "DELETE ALL" : selectedUser?.email;
+      if (confirmInput !== expectedConfirm) {
+        toast.error("Invalid confirmation", { description: "Please type the exact confirmation text." });
+        return;
+      }
+    }
 
     try {
       let endpoint = "/api/admin/users"
       let method = "PUT"
-      let payload: any = { uid: selectedUser.id || selectedUser.uid } // Handle both id formats
+      let payload: any = { uid: selectedUser?.id || selectedUser?.uid } // Handle both id formats
 
       if (actionType === "suspend") {
         payload.action = "ban"
@@ -214,11 +243,27 @@ export default function UsersPage() {
         payload.payload = { role: "user" }
       }
 
-      // For delete, we might still want strictly local handling or API if implemented
-      // Assuming API handles it or keeping placeholder for now if deleteUser import removed
+      // For delete, we call our new hard delete API
       if (actionType === "delete") {
-        // TODO: Implement delete in API if needed
-        toast.info("Not Implemented", { description: "Delete via API not yet set up." })
+        const uidsString = selectedUids.length > 0 ? selectedUids.join(",") : (selectedUser?.id || selectedUser?.uid);
+        const queryParam = selectedUids.length > 0 ? `uids=${uidsString}` : `uid=${uidsString}`;
+
+        const deleteRes = await fetchWithAuth(`/api/admin/users?${queryParam}`, {
+          method: "DELETE",
+        })
+
+        if (!deleteRes.ok) {
+          const errorData = await deleteRes.json()
+          throw new Error(errorData.error || "Failed to delete user(s)")
+        }
+
+        toast.success("Success", {
+          description: `User(s) deleted permanently.`
+        })
+        setSelectedUids([])
+        loadUsers()
+        setShowActionDialog(false)
+        setConfirmInput("")
         return
       }
 
@@ -239,6 +284,7 @@ export default function UsersPage() {
       loadUsers() // Reload to see changes
 
       setShowActionDialog(false)
+      setConfirmInput("")
       setActionForm({ duration: "30", reason: "" })
     } catch (error: any) {
       console.error("Error performing action:", error)
@@ -414,6 +460,17 @@ export default function UsersPage() {
                             <Ban className="mr-2 h-4 w-4 text-red-500" />
                             Suspended
                           </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={statusFilter.includes("deleted")}
+                            onCheckedChange={(checked) =>
+                              setStatusFilter(
+                                checked ? [...statusFilter, "deleted"] : statusFilter.filter((s) => s !== "deleted"),
+                              )
+                            }
+                          >
+                            <Trash2 className="mr-2 h-4 w-4 text-gray-500" />
+                            Deleted
+                          </DropdownMenuCheckboxItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuPortal>
                     </DropdownMenuSub>
@@ -512,6 +569,16 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {selectedUids.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    className="gap-2 rounded-xl"
+                    onClick={() => openActionDialog(null, "delete")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete ({selectedUids.length})
+                  </Button>
+                )}
                 <Button variant="outline" className="gap-2 bg-transparent rounded-xl border-dashed">
                   <Download className="h-4 w-4" />
                   Export
@@ -540,6 +607,12 @@ export default function UsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={selectedUids.length === paginatedUsers.length && paginatedUsers.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Plan</TableHead>
@@ -551,7 +624,13 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {paginatedUsers.map((user, index) => (
-                      <TableRow key={user.uid || user.id || index}>
+                      <TableRow key={user.uid || user.id || index} className={cn(selectedUids.includes(user.uid || user.id) && "bg-muted/50")}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedUids.includes(user.uid || user.id)}
+                            onCheckedChange={() => toggleSelectUser(user.uid || user.id)}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
@@ -836,13 +915,31 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {actionType === "delete" && selectedUser && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                  <p className="text-sm text-destructive font-semibold mb-2">Warning: This cannot be undone</p>
-                  <p className="text-sm text-muted-foreground">
-                    Please type <code className="bg-background px-1 py-0.5 rounded">{selectedUser.email}</code> to confirm
-                    deletion.
-                  </p>
+              {actionType === "delete" && (selectedUser || selectedUids.length > 0) && (
+                <div className="space-y-4">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <p className="text-sm text-destructive font-semibold mb-2">Warning: This cannot be undone</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedUids.length > 0 ? (
+                        <>Permanent deletion of <strong>{selectedUids.length}</strong> accounts.</>
+                      ) : (
+                        <>Permanent deletion of <strong>{selectedUser?.name}</strong>'s account.</>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Please type <code className="bg-background px-1 py-0.5 rounded">{selectedUids.length > 0 ? "DELETE ALL" : selectedUser?.email}</code> to confirm.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm">Confirmation</Label>
+                    <Input
+                      id="confirm"
+                      placeholder="Type to confirm..."
+                      value={confirmInput}
+                      onChange={(e) => setConfirmInput(e.target.value)}
+                      className="border-destructive/20 focus-visible:ring-destructive"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -851,7 +948,11 @@ export default function UsersPage() {
               <Button variant="outline" onClick={() => setShowActionDialog(false)}>
                 Cancel
               </Button>
-              <Button variant={actionType === "delete" ? "destructive" : "default"} onClick={handleAction}>
+              <Button
+                variant={actionType === "delete" ? "destructive" : "default"}
+                onClick={handleAction}
+                disabled={actionType === "delete" && confirmInput !== (selectedUids.length > 0 ? "DELETE ALL" : selectedUser?.email)}
+              >
                 {actionType === "suspend" && "Suspend Account"}
                 {actionType === "unsuspend" && "Unsuspend Account"}
                 {actionType === "grant" && "Grant Premium"}
