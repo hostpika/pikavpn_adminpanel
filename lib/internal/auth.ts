@@ -1,8 +1,10 @@
 import { SignJWT, jwtVerify } from "jose"
 
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "default_secret_change_me_in_prod"
-)
+const secret = process.env.JWT_SECRET
+if (!secret || secret.length === 0) {
+    throw new Error("FATAL: JWT_SECRET is not defined in environment variables.")
+}
+const JWT_SECRET = new TextEncoder().encode(secret)
 
 export async function createToken(payload: { uid: string; role: string; plan: string;[key: string]: any }) {
     return await new SignJWT(payload)

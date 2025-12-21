@@ -1,36 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Match any document in the 'users' collection
+    // User profiles
     match /users/{userId} {
-      // Allow users to read/list all users (as requested "can just see data")
-      allow read, list: if request.auth != null;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
       
-      // Allow users to update or create their own profile
-      // Note: We allow 'create' so new users can register via Google Sign-In
-      allow create, update: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow admins to delete or update any user
-      allow delete, update: if request.auth != null && isAdmin();
-      
+      // Activity subcollection
       match /activity/{activityId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
-    }
-
-    // Match any document in the 'servers' collection
-    match /servers/{serverId} {
-       // Allow any authenticated user to read servers
-       allow read, list: if request.auth != null;
-       
-       // Only admins can modify servers
-       allow create, update, delete: if request.auth != null && isAdmin();
-    }
-    
-    // Default: Deny everything else
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }

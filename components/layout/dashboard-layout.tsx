@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -45,6 +45,12 @@ import {
   FileText, // Added FileText icon
   PlusCircle,
   Computer,
+  Book,
+  Globe,
+  Cloud,
+  Lock,
+  Terminal,
+  Rocket,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -132,6 +138,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Monitoring", href: "/dashboard/monitoring", icon: Activity },
     { name: "Notifications", href: "/dashboard/notifications", icon: Send },
     { name: "Activity Logs", href: "/dashboard/logs", icon: FileText },
+    {
+      name: "Docs",
+      href: "/dashboard/docs",
+      icon: Book,
+      children: [
+        { name: "System Overview", href: "/dashboard/docs?section=overview", icon: Globe },
+        { name: "Architecture", href: "/dashboard/docs?section=architecture", icon: Cloud },
+        { name: "Auth Flows", href: "/dashboard/docs?section=auth-flow", icon: Lock },
+        { name: "Deployment & Setup", href: "/dashboard/docs?section=deployment", icon: Rocket },
+        { name: "Config System", href: "/dashboard/docs?section=config-system", icon: Settings },
+        { name: "Ads & Pricing", href: "/dashboard/docs?section=monetization", icon: DollarSign },
+        { name: "Mobile API", href: "/dashboard/docs?section=mobile-api", icon: Smartphone },
+        { name: "Admin API", href: "/dashboard/docs?section=admin-api", icon: Terminal },
+      ]
+    },
     { name: "More Apps", href: "/dashboard/more-apps", icon: Smartphone },
   ]
 
@@ -151,6 +172,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isActive = pathname === item.href || (item.children && item.children.some(c => pathname === c.href))
     const isExpanded = expandedMenus.includes(item.name)
     const hasChildren = item.children && item.children.length > 0
+    const searchParams = useSearchParams()
 
     const toggleMenu = (e: React.MouseEvent) => {
       if (hasChildren) {
@@ -164,23 +186,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     if (collapsed && hasChildren) {
-      // In collapsed mode, we can show a tooltip or just link to the main href (which redirects)
       return (
         <Link
           href={item.href}
           className={cn(
-            "flex items-center rounded-xl px-3 font-medium transition-all duration-200 hover:scale-105 active:scale-95 group relative overflow-hidden",
-            density.py,
-            density.gap,
-            density.textSize,
+            "flex items-center justify-center rounded-xl p-2 transition-all duration-200 group relative",
             isActive
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground",
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
           onClick={() => setMobileOpen(false)}
         >
-          <item.icon className={cn("flex-shrink-0", density.iconSize, "mx-auto")} />
-          {isActive && collapsed && <div className="absolute inset-y-0 left-0 w-1 bg-primary/20" />}
+          <item.icon className={cn("flex-shrink-0 w-5 h-5")} />
         </Link>
       )
     }
@@ -194,49 +211,53 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             else setMobileOpen(false)
           }}
           className={cn(
-            "flex items-center rounded-xl px-3 font-medium transition-all duration-200 group relative",
+            "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group select-none",
             collapsed ? "justify-center" : "justify-between",
-            density.py,
-            density.gap,
-            density.textSize,
             isActive
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground",
+              ? "bg-primary/10 text-primary shadow-sm"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
           <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-            {/* Icon with subtle background for active state if needed, or just clean */}
-            <item.icon className={cn("flex-shrink-0 transition-transform duration-200 group-hover:scale-110", density.iconSize)} />
+            <item.icon className={cn("flex-shrink-0 w-4 h-4", isActive ? "text-primary" : "text-muted-foreground", "group-hover:text-foreground transition-colors")} />
             {!collapsed && <span>{item.name}</span>}
           </div>
           {!collapsed && hasChildren && (
-            <ChevronDown className={cn("h-4 w-4 transition-transform ml-auto text-muted-foreground/70", isExpanded ? "rotate-180" : "")} />
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform text-muted-foreground", isExpanded ? "rotate-180" : "")} />
           )}
         </Link>
 
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="ml-4 pl-3 space-y-1 animate-slide-down relative">
-            {/* Decoration line for hierarchy (optional, cleaner without) */}
-            <div className="absolute left-0 top-1 bottom-1 w-px bg-border/40" />
-            {item.children?.map(child => (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center rounded-lg py-2 pl-3 pr-2 text-sm transition-colors relative",
-                  pathname === child.href
-                    ? "text-primary font-semibold bg-primary/5"
-                    : "text-muted-foreground hover:text-foreground hover:bg-neutral-100/80 dark:hover:bg-neutral-800/50"
-                )}
-              >
-                {/* Small indicator for active */}
-                {pathname === child.href && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-r-full" />}
-                {child.icon ? <child.icon className="h-4 w-4 mr-2 opacity-70" /> : <div className="w-1" />}
-                {child.name}
-              </Link>
-            ))}
+          <div className="ml-9 space-y-0.5 border-l px-2 border-border/50">
+            {item.children?.map(child => {
+              // Exact active check using search params if present
+              const isChildActive = child.href.includes('?')
+                ? (pathname === child.href.split('?')[0] && searchParams.toString() === child.href.split('?')[1])
+                : pathname === child.href
+
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg py-2 pl-3 pr-2 text-sm transition-colors relative",
+                    isChildActive
+                      ? "text-primary font-medium bg-primary/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  {/* Active Dot */}
+                  {isChildActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+                  )}
+
+                  {child.icon && <child.icon className="w-4 h-4 opacity-70" />}
+                  {child.name}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
@@ -274,7 +295,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               )}
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.photoURL || "/placeholder.svg?height=40&width=40"} />
+                <AvatarImage src={user?.photoURL || "/placeholder.svg?height=40&width=40"} referrerPolicy="no-referrer" />
                 <AvatarFallback>{user?.displayName?.substring(0, 2).toUpperCase() || "CN"}</AvatarFallback>
               </Avatar>
               {!collapsed && (

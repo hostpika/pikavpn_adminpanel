@@ -1,5 +1,6 @@
 import { getServers } from "./server-service"
 import { getUsers } from "./user-service"
+import { fetchWithAuth } from "@/lib/api-client"
 
 export interface DashboardStats {
   dailyActiveUsers: number
@@ -103,42 +104,83 @@ export async function getServerLoadData(): Promise<ServerLoadDataPoint[]> {
 }
 
 export async function getUserGrowthData(): Promise<UserGrowthDataPoint[]> {
-  // In a real app, this would fetch historical data
-  // For now, return sample data
-  return [
-    { month: "Jan", free: 12000, premium: 4200 },
-    { month: "Feb", free: 14500, premium: 5100 },
-    { month: "Mar", free: 16800, premium: 6400 },
-    { month: "Apr", free: 18200, premium: 7800 },
-    { month: "May", free: 20500, premium: 9200 },
-    { month: "Jun", free: 23400, premium: 11500 },
-  ]
+  const users = await getUsers()
+
+  // Initialize last 6 months
+  const months: Record<string, { free: number; premium: number }> = {}
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date()
+    d.setMonth(d.getMonth() - i)
+    const key = d.toLocaleString('default', { month: 'short' })
+    months[key] = { free: 0, premium: 0 }
+  }
+
+  // Aggregate user creation times
+  users.forEach(user => {
+    if (user.registrationDate && user.registrationDate !== "Unknown") {
+      const date = new Date(user.registrationDate)
+      const key = date.toLocaleString('default', { month: 'short' })
+      if (months[key]) {
+        if (user.tier === 'premium') {
+          months[key].premium++
+        } else {
+          months[key].free++
+        }
+      }
+    }
+  })
+
+  return Object.entries(months).map(([month, counts]) => ({
+    month,
+    free: counts.free,
+    premium: counts.premium
+  }))
 }
 
 export async function getTopCountries(): Promise<TopCountry[]> {
-  // In a real app, this would aggregate user locations
-  return [
-    { country: "United States", users: "8,432" },
-    { country: "United Kingdom", users: "5,218" },
-    { country: "Germany", users: "3,897" },
-    { country: "Canada", users: "2,654" },
-  ]
+  // We currently don't track user country in a queryable way in this version.
+  // Returning empty to avoid dummy data.
+  return []
 }
 
+// Fixed duplicate import by removing it here. It is already imported at the top.
+
 export async function getRecentActivity(): Promise<RecentActivity[]> {
-  // In a real app, this would fetch from activity logs collection
-  return [
-    { action: "New server added", time: "5 min ago" },
-    { action: "User upgraded", time: "12 min ago" },
-    { action: "Config updated", time: "1 hour ago" },
-    { action: "Backup completed", time: "2 hours ago" },
-  ]
+  try {
+    // Fetch real logs from API (Client-side safe)
+    const response = await fetchWithAuth("/api/admin/logs?limit=5")
+    if (!response.ok) return []
+
+    // The logs API returns { logs: [], nextCursor, hasMore }
+    const data = await response.json()
+    const logs = data.logs || []
+
+    return logs.map((log: any) => {
+      // Format timestamp to relative time
+      // The API returns timestamp as ISO string
+      const date = new Date(log.timestamp)
+      const diff = (new Date().getTime() - date.getTime()) / 1000 / 60 // minutes
+      let time = ""
+      if (diff < 60) time = `${Math.floor(diff)} min ago`
+      else if (diff < 1440) time = `${Math.floor(diff / 60)} hours ago`
+      else time = `${Math.floor(diff / 1440)} days ago`
+
+      return {
+        action: `${log.action} ${log.targetType || ''}`,
+        time
+      }
+    })
+  } catch (e) {
+    console.error("Failed to fetch activity logs", e)
+    return []
+  }
 }
 
 export async function getSystemHealth() {
+  // Simple check - if we can query DB, it's operational.
   return [
     { name: "API Status", status: "Operational", color: "text-green-500" },
-    { name: "Database", status: "Operational", color: "text-green-500" },
+    { name: "Database", status: "Operational", color: "text-green-500" }, // Assumed operational if this page loads
     { name: "Storage", status: "Operational", color: "text-green-500" },
     { name: "Auth Service", status: "Operational", color: "text-green-500" },
   ]

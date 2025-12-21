@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, ExternalLink, Edit, Trash2, Smartphone } from "lucide-react"
+import { Plus, ExternalLink, Edit, Trash2, Smartphone, Loader2 } from "lucide-react"
 import Image from "next/image"
 import {
   AlertDialog,
@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/components/auth-provider"
 import { AdminAlert } from "@/components/admin-alert"
+import { toast } from "sonner"
+import { fetchWithAuth } from "@/lib/api-client"
 
 type AppType = {
   id: string
@@ -42,105 +44,9 @@ type AppType = {
   rating: string
 }
 
-const mockApps: AppType[] = [
-  {
-    id: "1",
-    name: "SuperVPN Pro",
-    description: "Premium VPN service with unlimited bandwidth and 50+ server locations",
-    playstoreUrl: "https://play.google.com/store/apps/details?id=com.cloudvpn.pro",
-    imageUrl: "/cloudvpn-icon.jpg",
-    category: "Tools",
-    downloads: "100K+",
-    rating: "4.5",
-  },
-  {
-    id: "2",
-    name: "CloudVPN Lite",
-    description: "Fast and secure free VPN for everyday browsing",
-    playstoreUrl: "https://play.google.com/store/apps/details?id=com.cloudvpn.lite",
-    imageUrl: "/cloudvpn-lite-icon.jpg",
-    category: "Tools",
-    downloads: "500K+",
-    rating: "4.3",
-  },
-]
 
-export default function MoreAppsPage() {
-  const [apps, setApps] = useState<AppType[]>(mockApps)
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [selectedApp, setSelectedApp] = useState<AppType | null>(null)
-  const { user } = useAuth()
-  const isAdmin = user?.role === "admin"
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    playstoreUrl: "",
-    imageUrl: "",
-    category: "",
-    downloads: "",
-    rating: "",
-  })
-
-  const handleAddApp = () => {
-    const newApp: AppType = {
-      id: String(apps.length + 1),
-      ...formData,
-    }
-    setApps([...apps, newApp])
-    setShowAddDialog(false)
-    resetForm()
-  }
-
-  const handleEditApp = () => {
-    if (!selectedApp) return
-    const updatedApps = apps.map((app) => (app.id === selectedApp.id ? { ...app, ...formData } : app))
-    setApps(updatedApps)
-    setShowEditDialog(false)
-    setSelectedApp(null)
-    resetForm()
-  }
-
-  const confirmDelete = (id: string) => {
-    setDeleteId(id)
-    setShowDeleteDialog(true)
-  }
-
-  const handleDeleteApp = () => {
-    if (!deleteId) return
-    setApps(apps.filter((app) => app.id !== deleteId))
-    setShowDeleteDialog(false)
-  }
-
-  const openEditDialog = (app: AppType) => {
-    setSelectedApp(app)
-    setFormData({
-      name: app.name,
-      description: app.description,
-      playstoreUrl: app.playstoreUrl,
-      imageUrl: app.imageUrl,
-      category: app.category,
-      downloads: app.downloads,
-      rating: app.rating,
-    })
-    setShowEditDialog(true)
-  }
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      playstoreUrl: "",
-      imageUrl: "",
-      category: "",
-      downloads: "",
-      rating: "",
-    })
-  }
-
-  const AppFormFields = () => (
+function AppFormFields({ formData, setFormData }: { formData: any, setFormData: (data: any) => void }) {
+  return (
     <div className="grid gap-4 py-4">
       <div className="space-y-2">
         <Label htmlFor="name">App Name *</Label>
@@ -214,10 +120,176 @@ export default function MoreAppsPage() {
       </div>
     </div>
   )
+}
+
+export default function MoreAppsPage() {
+  const [apps, setApps] = useState<AppType[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [selectedApp, setSelectedApp] = useState<AppType | null>(null)
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    playstoreUrl: "",
+    imageUrl: "",
+    category: "",
+    downloads: "",
+    rating: "",
+  })
+
+  useEffect(() => {
+    fetchApps()
+  }, [])
+
+  const fetchApps = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch("/api/app/more-apps") // Public endpoint
+      if (res.ok) {
+        const data = await res.json()
+        setApps(data.apps || [])
+      }
+    } catch (error) {
+      console.error("Failed to fetch apps", error)
+      toast.error("Failed to load apps")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddApp = async () => {
+    try {
+      if (!formData.name || !formData.playstoreUrl) {
+        toast.error("Name and URL are required")
+        return
+      }
+
+      const newApp: AppType = {
+        id: crypto.randomUUID(), // Generate unique ID
+        ...formData,
+      }
+
+      // Optimistic update
+      const prevApps = [...apps]
+      setApps([...apps, newApp])
+      setShowAddDialog(false)
+      resetForm()
+
+      const res = await fetchWithAuth("/api/admin/more-apps", {
+        method: "POST",
+        body: JSON.stringify({ app: newApp })
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to save")
+      }
+      toast.success("App added successfully")
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to add app")
+      fetchApps() // Revert on error
+    }
+  }
+
+  const handleEditApp = async () => {
+    if (!selectedApp) return
+    try {
+      const updatedApp = { ...selectedApp, ...formData }
+
+      // Optimistic update
+      const prevApps = [...apps]
+      setApps(apps.map((app) => (app.id === selectedApp.id ? updatedApp : app)))
+      setShowEditDialog(false)
+      setSelectedApp(null)
+      resetForm()
+
+      const res = await fetchWithAuth("/api/admin/more-apps", {
+        method: "PUT",
+        body: JSON.stringify({ app: updatedApp })
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to update")
+      }
+      toast.success("App updated successfully")
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to update app")
+      fetchApps()
+    }
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeleteId(id)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteApp = async () => {
+    if (!deleteId) return
+    try {
+      const prevApps = [...apps]
+      setApps(apps.filter((app) => app.id !== deleteId))
+      setShowDeleteDialog(false)
+
+      const res = await fetchWithAuth(`/api/admin/more-apps?id=${deleteId}`, {
+        method: "DELETE"
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to delete")
+      }
+      toast.success("App deleted successfully")
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to delete app")
+      fetchApps()
+    }
+  }
+
+  const openEditDialog = (app: AppType) => {
+    setSelectedApp(app)
+    setFormData({
+      name: app.name,
+      description: app.description,
+      playstoreUrl: app.playstoreUrl,
+      imageUrl: app.imageUrl,
+      category: app.category,
+      downloads: app.downloads,
+      rating: app.rating,
+    })
+    setShowEditDialog(true)
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      playstoreUrl: "",
+      imageUrl: "",
+      category: "",
+      downloads: "",
+      rating: "",
+    })
+  }
+
+
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[500px]">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <>
-
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -322,7 +394,7 @@ export default function MoreAppsPage() {
             <DialogTitle>Add New App</DialogTitle>
             <DialogDescription>Add a new app to your Play Store portfolio</DialogDescription>
           </DialogHeader>
-          <AppFormFields />
+          <AppFormFields formData={formData} setFormData={setFormData} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
@@ -338,7 +410,7 @@ export default function MoreAppsPage() {
             <DialogTitle>Edit App</DialogTitle>
             <DialogDescription>Update app information</DialogDescription>
           </DialogHeader>
-          <AppFormFields />
+          <AppFormFields formData={formData} setFormData={setFormData} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancel

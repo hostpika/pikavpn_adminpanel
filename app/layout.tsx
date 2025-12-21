@@ -56,7 +56,7 @@ export default function RootLayout({
             <PreferencesProvider>{children}</PreferencesProvider>
           </AuthProvider>
         </ThemeProvider>
-        <Toaster />
+        <Toaster richColors position="top-right" />
         <Analytics />
       </body>
     </html>
