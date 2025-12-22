@@ -4,6 +4,9 @@ import { getAdminFromRequest } from "@/lib/auth-helper";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function GET(request: Request) {
+    const adminPerm = await getAdminFromRequest(request);
+    if (!adminPerm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const snapshot = await adminDb.collection("notifications").orderBy("sentAt", "desc").get();
         const notifications = snapshot.docs.map(doc => ({
@@ -24,7 +27,20 @@ export async function POST(request: Request) {
     if (!adminPerm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
-        const { title, message, target, scheduleDate, scheduleTime } = await request.json();
+        const {
+            title,
+            message,
+            target,
+            scheduleDate,
+            scheduleTime,
+            image_url,
+            cta_text,
+            cta_url,
+            dismissible = true,
+            min_version,
+            max_version,
+            priority = "high"
+        } = await request.json();
 
         if (!title || !message) {
             return NextResponse.json({ error: "Title and message are required" }, { status: 400 });
@@ -56,10 +72,30 @@ export async function POST(request: Request) {
                 title,
                 body: message,
             },
+            android: {
+                priority: (priority === "high" ? "high" : "normal") as "high" | "normal",
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                    },
+                },
+                headers: {
+                    "apns-priority": priority === "high" ? "10" : "5",
+                },
+            },
             topic: topic,
             data: {
                 click_action: "FLUTTER_NOTIFICATION_CLICK",
-                target: target
+                target: target,
+                ...(image_url && { image_url }),
+                ...(cta_text && { cta_text }),
+                ...(cta_url && { cta_url }),
+                dismissible: String(dismissible),
+                ...(min_version && { min_version }),
+                ...(max_version && { max_version }),
+                priority
             }
         };
 
@@ -86,6 +122,13 @@ export async function POST(request: Request) {
             message,
             target,
             status,
+            image_url: image_url || null,
+            cta_text: cta_text || null,
+            cta_url: cta_url || null,
+            dismissible,
+            min_version: min_version || null,
+            max_version: max_version || null,
+            priority,
             // Create a date object from schedule or now
             sentAt: scheduleDate ? Timestamp.fromDate(new Date(`${scheduleDate} ${scheduleTime}`)) : Timestamp.now(),
             recipients: 0, // Placeholder, hard to know exact count without analytics

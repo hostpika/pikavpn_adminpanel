@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Send, Search, Trash2, Eye, CheckCircle2, XCircle, Clock } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { AdminAlert } from "@/components/admin-alert"
+import { Switch } from "@/components/ui/switch"
 
 type NotificationType = {
   id: string
@@ -70,12 +71,19 @@ export default function NotificationsPage() {
     target: "all",
     scheduleDate: "",
     scheduleTime: "",
+    priority: "high",
+    image_url: "",
+    cta_text: "",
+    cta_url: "",
+    min_version: "",
+    max_version: "",
+    dismissible: true,
   })
 
   const fetchNotifications = async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/notifications")
+      const res = await fetchWithAuth("/api/admin/notifications")
       if (res.ok) {
         const data = await res.json()
         setNotifications(data.notifications || [])
@@ -106,8 +114,7 @@ export default function NotificationsPage() {
 
     try {
       setSending(true)
-      setSending(true)
-      const res = await fetchWithAuth("/api/notifications", {
+      const res = await fetchWithAuth("/api/admin/notifications", {
         method: "POST",
         body: JSON.stringify(formData),
       })
@@ -121,7 +128,20 @@ export default function NotificationsPage() {
       })
 
       setShowSendDialog(false)
-      setFormData({ title: "", message: "", target: "all", scheduleDate: "", scheduleTime: "" })
+      setFormData({
+        title: "",
+        message: "",
+        target: "all",
+        scheduleDate: "",
+        scheduleTime: "",
+        priority: "high",
+        image_url: "",
+        cta_text: "",
+        cta_url: "",
+        min_version: "",
+        max_version: "",
+        dismissible: true,
+      })
       fetchNotifications() // Refresh list
     } catch (error) {
       console.error("Error sending notification:", error)
@@ -140,7 +160,7 @@ export default function NotificationsPage() {
     if (!deleteId) return
 
     try {
-      const res = await fetchWithAuth(`/api/notifications/${deleteId}`, { method: "DELETE" })
+      const res = await fetchWithAuth(`/api/admin/notifications/${deleteId}`, { method: "DELETE" })
       if (res.ok) {
         toast.success("Deleted", { description: "Notification history deleted" })
         setNotifications((prev) => prev.filter((n) => n.id !== deleteId))
@@ -264,6 +284,7 @@ export default function NotificationsPage() {
                       <TableRow>
                         <TableHead>Title</TableHead>
                         <TableHead>Target</TableHead>
+                        <TableHead>Priority</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Sent At</TableHead>
                         <TableHead>Recipients</TableHead>
@@ -282,6 +303,11 @@ export default function NotificationsPage() {
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
                               {notification.target}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={((notification as any).priority === "high") ? "destructive" : "secondary"} className="capitalize">
+                              {(notification as any).priority || "high"}
                             </Badge>
                           </TableCell>
                           <TableCell>{getStatusBadge(notification.status)}</TableCell>
@@ -328,65 +354,167 @@ export default function NotificationsPage() {
             <DialogDescription>Create and send a notification to your users via Firebase FCM</DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Notification Title *</Label>
-              <Input
-                id="title"
-                placeholder="New Feature Available"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
+          <Tabs defaultValue="compose" className="w-full">
+            <div className="px-6 pt-2">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="compose">Compose</TabsTrigger>
+                <TabsTrigger value="targeting">Targeting</TabsTrigger>
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              </TabsList>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="message">Message *</Label>
-              <Textarea
-                id="message"
-                placeholder="Tell your users about what's new..."
-                rows={4}
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">{formData.message.length} / 200 characters</p>
-            </div>
+            <div className="px-6 py-4">
+              <TabsContent value="compose" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Notification Title *</Label>
+                  <Input
+                    id="title"
+                    placeholder="New Feature Available"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="target">Target Audience *</Label>
-              <Select value={formData.target} onValueChange={(value) => setFormData({ ...formData, target: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Users (5,420)</SelectItem>
-                  <SelectItem value="premium">Premium Users (1,245)</SelectItem>
-                  <SelectItem value="free">Free Users (3,200)</SelectItem>
-                  <SelectItem value="specific">Specific Users</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message *</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Tell your users about what's new..."
+                    rows={4}
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">{formData.message.length} / 200</p>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="scheduleDate">Schedule Date (Optional)</Label>
-                <Input
-                  id="scheduleDate"
-                  type="date"
-                  value={formData.scheduleDate}
-                  onChange={(e) => setFormData({ ...formData, scheduleDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="scheduleTime">Schedule Time (Optional)</Label>
-                <Input
-                  id="scheduleTime"
-                  type="time"
-                  value={formData.scheduleTime}
-                  onChange={(e) => setFormData({ ...formData, scheduleTime: e.target.value })}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image_url">Image URL (Optional)</Label>
+                  <Input
+                    id="image_url"
+                    placeholder="https://example.com/image.png"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cta_text">CTA Text (Optional)</Label>
+                    <Input
+                      id="cta_text"
+                      placeholder="Learn More"
+                      value={formData.cta_text}
+                      onChange={(e) => setFormData({ ...formData, cta_text: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cta_url">CTA URL (Optional)</Label>
+                    <Input
+                      id="cta_url"
+                      placeholder="https://example.com/promo"
+                      value={formData.cta_url}
+                      onChange={(e) => setFormData({ ...formData, cta_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="targeting" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="target">Target Audience *</Label>
+                  <Select value={formData.target} onValueChange={(value) => setFormData({ ...formData, target: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Users (5,420)</SelectItem>
+                      <SelectItem value="premium">Premium Users (1,245)</SelectItem>
+                      <SelectItem value="free">Free Users (3,200)</SelectItem>
+                      <SelectItem value="specific">Specific Users</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority *</Label>
+                  <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High (Immediate)</SelectItem>
+                      <SelectItem value="normal">Normal (Battery Optimized)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="min_version">Min Version (Optional)</Label>
+                    <Input
+                      id="min_version"
+                      placeholder="1.0.0"
+                      value={formData.min_version}
+                      onChange={(e) => setFormData({ ...formData, min_version: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_version">Max Version (Optional)</Label>
+                    <Input
+                      id="max_version"
+                      placeholder="9.9.9"
+                      value={formData.max_version}
+                      onChange={(e) => setFormData({ ...formData, max_version: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-4">
+                  <Switch
+                    id="dismissible"
+                    checked={formData.dismissible}
+                    onCheckedChange={(checked) => setFormData({ ...formData, dismissible: checked })}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="dismissible">Dismissible</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow users to dismiss this notification
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="schedule" className="space-y-4 mt-0">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduleDate">Date</Label>
+                    <Input
+                      id="scheduleDate"
+                      type="date"
+                      value={formData.scheduleDate}
+                      onChange={(e) => setFormData({ ...formData, scheduleDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduleTime">Time</Label>
+                    <Input
+                      id="scheduleTime"
+                      type="time"
+                      value={formData.scheduleTime}
+                      onChange={(e) => setFormData({ ...formData, scheduleTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium text-foreground">Scheduling Note</span>
+                  </div>
+                  Notifications without a schedule are sent immediately. Scheduled notifications will be processed by the system scheduler within 5 minutes of the target time.
+                </div>
+              </TabsContent>
             </div>
-          </div>
+          </Tabs>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSendDialog(false)}>
