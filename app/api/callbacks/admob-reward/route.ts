@@ -131,8 +131,9 @@ export async function GET(request: Request) {
     }
 
     if (!userId) {
-        console.error("No userId found in SSV callback");
-        return NextResponse.json({ error: "No User ID" }, { status: 400 });
+        console.warn("No userId found in SSV callback - likely a verification ping");
+        // Return 200 to satisfy AdMob's endpoint verification test, creating a "success" state in their console.
+        return NextResponse.json({ message: "Verification successful, but no user identified (no-op)" }, { status: 200 });
     }
 
     // 5. Idempotency Check
