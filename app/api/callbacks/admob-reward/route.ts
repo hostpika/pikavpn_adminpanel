@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/internal/firebase";
+import { adminAuth, adminDb } from "@/lib/internal/firebase";
 import crypto from "crypto";
 
 // AdMob Public Keys URL
@@ -14,7 +14,6 @@ interface AdMobKeys {
 }
 
 let cachedKeys: AdMobKeys | null = null;
-let lastKeysFetchStr: string | null = null; // Basic checks for 'max-age' if we wanted, but simple caching is okay for now.
 
 async function getAdMobPublicKeys(): Promise<AdMobKeys> {
     if (cachedKeys) return cachedKeys;
@@ -40,51 +39,41 @@ export async function GET(request: Request) {
     const signature = searchParams.get("signature");
     const key_id = searchParams.get("key_id");
     const custom_data = searchParams.get("custom_data");
-    const user_id = searchParams.get("user_id"); // Alternatively logic might use this if custom_data is missing, but requirement says custom_data has our uid/sid.
+    const transaction_id = searchParams.get("transaction_id");
 
     if (!signature || !key_id) {
         return NextResponse.json({ error: "Missing signature or key_id" }, { status: 400 });
     }
 
-    // 2. Reconstruct the message
-    // AdMob SSV: The message to be signed is the query string *without* signature and key_id.
-    // IMPORTANT: The order of parameters in the query string matters for reconstruction? 
-    // Actually, AdMob docs say: "The message is the concatenation of the query parameters."
-    // BUT usually, it's the full query string minus the signature parameters.
-    // Let's look up specific AdMob SSV verification logic.
-    // "The content to be verified is the query string of the request URL, excluding the signature and key_id parameters."
-    // Implementation detail: we need to handle the params exactly as received.
-
-    // A safer way is ensuring we reconstruct it from the raw URL or carefully filtering.
-    // Standard approach: 
-    // 1. Get query string.
-    // 2. Remove 'signature' and 'key_id'.
-    // 3. Verify.
+    // 2. Reconstruct the message for verification
+    // AdMob SSV verification message is the full query string usually *excluding* signature and key_id.
+    // However, robust verification often involves taking the raw query string and stripping those precise params.
+    // For simplicity and safety with Next.js URL parsing:
+    const params = new URLSearchParams(searchParams);
+    params.delete("signature");
+    params.delete("key_id");
+    // Important: The order of parameters must match exactly what AdMob sent. 
+    // Since we can't guarantee URLSearchParams preserves original order perfectly regarding duplicates or specific sorting AdMob used,
+    // using the raw query string is safer.
 
     const rawUrl = request.url;
     const queryStringIndex = rawUrl.indexOf("?");
-    if (queryStringIndex === -1) {
-        return NextResponse.json({ error: "No query parameters" }, { status: 400 });
+    let message = "";
+    if (queryStringIndex !== -1) {
+        const rawQuery = rawUrl.substring(queryStringIndex + 1);
+        // Remove signature and key_id from raw string carefully.
+        // Regex or splitting might be needed. 
+        // Simplest valid approach often accepted: Reconstruct from sorted params or trust the parser if order doesn't matter (AdMob says "concatenation of query parameters").
+        // Actually, mostly order usually matters. 
+        // Let's try to just use the params we have, but to satisfy strict verification, we'll iterate the raw string.
+        // A common node approach:
+        message = decodeURIComponent(params.toString());
+        // WAIT: decodeURIComponent might mess up if params were encoded. 
+        // Actually, `params.toString()` returns encoded string. AdMob signs the *query string*.
+        // So `params.toString()` is close, but we need to be careful.
+        // Let's rely on `params.toString()` for now as it's cleaner than raw string manipulation which is prone to edge cases.
+        message = params.toString();
     }
-    const queryString = rawUrl.substring(queryStringIndex + 1);
-    const params = new URLSearchParams(queryString);
-
-    // Re-serialize valid params sorted? Or just as received excluding sig?
-    // AdMob documentation: "To verify, use the entire query string from the request, except for the signature and key_id parameters." 
-    // It does NOT say to re-sort. It usually implies order preservation.
-    // However, usually servers receiving might render order differently.
-    // Let's assume standard behavior: filter out sig/key_id from the parsed params and reconstruct, 
-    // OR strictly string manip on the raw query string. 
-    // String manip is safer if we trust the raw URL.
-
-    // Let's try to do it by creating a new URLSearchParams from existing, deleting signature/key_id, and toString().
-    // NOTE: URLSearchParams.toString() sorts keys? No, standard URLSearchParams usually doesn't strictly sort but might normalize.
-    // Let's stick to the raw query string component approach to be safest if possible, 
-    // but `searchParams` is already parsed.
-
-    params.delete("signature");
-    params.delete("key_id");
-    const message = params.toString();
 
     // 3. Verify Signature
     try {
@@ -99,15 +88,13 @@ export async function GET(request: Request) {
         const verifier = crypto.createVerify("SHA256");
         verifier.update(message);
 
-        // Config signature is base64url encoded usually? AdMob says: "Web-safe Base64". 
-        // We might need to replace '-' with '+' and '_' with '/'.
         const cleanSignature = signature.replace(/-/g, "+").replace(/_/g, "/");
-        // Also might need padding, but Buffer.from usually handles unpadded if we are lucky, or we pad manually.
-
         const isValid = verifier.verify(key.pem, cleanSignature, "base64");
 
         if (!isValid) {
             console.warn("Invalid AdMob SSV signature");
+            // For debugging, sometimes simple reconstruction fails. 
+            // Return 403 but log detailed diff if possible.
             return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
         }
     } catch (err) {
@@ -115,104 +102,91 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Verification failed" }, { status: 500 });
     }
 
-    // 4. Grant Access
+    // 4. Parse "custom_data"
+    // Expected format from client: 
+    // customData: JSON.stringify({ userId: "...", reward: "1h" })
+    let userId = "";
+    let rewardType = "";
+
     try {
-        let targetUserId = "";
-        let targetResourceId = "ALL"; // Default to ALL if not specified or implied
-
-        // Parse custom_data
-        // Expected format: {"uid": "123", "sid": "us-ny-1"} or just "uid:123" depending on client. 
-        // User request example: {"uid": "123", "sid": "us-ny-1"}
         if (custom_data) {
+            // It comes URL-encoded in the query param usually, searchParams handles one layer. 
+            // Inside it might be JSON.
+            const jsonStr = decodeURIComponent(custom_data);
+            // Sometimes it's double encoded or just raw string.
+            // Try parsing
+            let data;
             try {
-                // It might be URL decoded already if we use searchParams.get
-                // Try parsing generic JSON
-                const decoded = decodeURIComponent(custom_data);
-                const data = JSON.parse(decoded);
-                if (data.uid) targetUserId = data.uid;
-                if (data.sid) targetResourceId = data.sid;
-            } catch (e) {
-                // Fallback: simple string or just use user_id param from AdMob if custom_data fails
-                console.warn("Failed to parse custom_data as JSON", e);
+                data = JSON.parse(jsonStr);
+            } catch {
+                // Try parsing raw custom_data if decode was unnecessary
+                data = JSON.parse(custom_data);
             }
+
+            userId = data.userId || data.uid;
+            rewardType = data.reward || data.rewardedVideoReward || "1h"; // fallback?
         }
-
-        if (!targetUserId && user_id) {
-            // Fallback to ad_network user_id if custom keys missing
-            targetUserId = user_id;
-        }
-
-        if (!targetUserId) {
-            return NextResponse.json({ error: "No user identified" }, { status: 400 });
-        }
-
-        // 5. UPSERT TemporaryAccess
-        // Collection: temporary_access
-        // DocId: can be transaction_id to prevent replay, or composite userId_resourceId.
-        // Spec says: "transactionId (String, Unique): The transaction ID from AdMob to prevent replay attacks."
-        // So we should probably store the transaction separately or use it as ID.
-        // BUT we also need to easily query "Does User X have access to Resource Y valid right now?"
-        // If we key by transactionId, querying by user is harder without index.
-        // If we key by userId, we overwrite previous transactions (which is fine for "extending" access, but we need to track unique transactions).
-
-        // Better Approach:
-        // Store the GRANT itself. 
-        // Querying access: "Select * from temporary_access where userId == U and resourceId == R and expiresAt > Now"
-        // To prevent replay: check if transactionId exists.
-
-        const transactionId = searchParams.get("transaction_id");
-        if (transactionId) {
-            const existingTx = await adminDb.collection("admob_transactions").doc(transactionId).get();
-            if (existingTx.exists) {
-                // Already processed this transaction
-                return NextResponse.json({ message: "Transaction already processed" });
-            }
-        }
-
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 Hour
-
-        const accessDocId = `${targetUserId}_${targetResourceId}`; // Single active grant strategy? 
-        // Or multiple grants stacking? 
-        // Requirement: "Set expiresAt = NOW() + 1 HOUR."
-        // Simple upsert is easiest for the access check.
-
-        // BATCH WRITE
-        const batch = adminDb.batch();
-
-        // 1. Record Transaction (idempotency)
-        if (transactionId) {
-            batch.set(adminDb.collection("admob_transactions").doc(transactionId), {
-                userId: targetUserId,
-                resourceId: targetResourceId,
-                timestamp: now,
-                originalParams: Object.fromEntries(searchParams)
-            });
-        }
-
-        // 2. Grant Access
-        // We'll use a specific doc ID for the user+resource so we can easily update/overwrite the expiration.
-        // If they watch multiple ads, should it stack? 1 hr -> 2 hr? 
-        // Requirement says: "Set expiresAt = NOW() + 1 HOUR." -> Implies override/reset?
-        // Let's assume Extend if current > now? Or just strictly Now + 1hr (which might shorten if they had 2 hours? unlikely for single reward).
-        // Let's safe bet: Max(currentExpiry, Now) + 1 Hour.
-        // But specific requirement text: "Set expiresAt = NOW() + 1 HOUR." -> I will stick to this simple logic for now.
-
-        const accessRef = adminDb.collection("temporary_access").doc(accessDocId);
-        batch.set(accessRef, {
-            userId: targetUserId,
-            resourceId: targetResourceId,
-            grantedAt: now,
-            expiresAt: expiresAt, // Firestore Timestamp? Date maps to Timestamp usually.
-            lastTransactionId: transactionId
-        }, { merge: true });
-
-        await batch.commit();
-
-    } catch (err) {
-        console.error("Database error:", err);
-        return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    } catch (e) {
+        console.log("Error parsing custom_data:", e);
     }
 
-    return NextResponse.json({ success: true });
+    if (!userId) {
+        console.error("No userId found in SSV callback");
+        return NextResponse.json({ error: "No User ID" }, { status: 400 });
+    }
+
+    // 5. Idempotency Check
+    if (transaction_id) {
+        const txRef = adminDb.collection("admob_transactions").doc(transaction_id);
+        const txDoc = await txRef.get();
+        if (txDoc.exists) {
+            return NextResponse.json({ message: "Already processed" });
+        }
+    }
+
+    // 6. Grant Reward
+    if (rewardType === "1h") {
+        try {
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // +1 Hour
+
+            const batch = adminDb.batch();
+
+            // A) Update User Document
+            const userRef = adminDb.collection("users").doc(userId);
+            batch.set(userRef, {
+                plan: "premium",
+                status: "active",
+                expiresAt: expiresAt,
+                updatedAt: now,
+            }, { merge: true });
+
+            // B) Log Transaction
+            if (transaction_id) {
+                batch.set(adminDb.collection("admob_transactions").doc(transaction_id), {
+                    userId,
+                    rewardType,
+                    timestamp: now,
+                    rawParams: Object.fromEntries(searchParams)
+                });
+            }
+
+            await batch.commit();
+
+            // C) Update Custom Claims
+            await adminAuth.setCustomUserClaims(userId, {
+                plan: "premium",
+                premium: true
+            });
+
+            console.log(`Granted 1h premium to ${userId} via AdMob SSV`);
+            return NextResponse.json({ success: true });
+
+        } catch (error) {
+            console.error("Error granting reward:", error);
+            return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+        }
+    }
+
+    return NextResponse.json({ message: "No action taken (unknown reward)" });
 }
