@@ -44,7 +44,37 @@ export async function POST(request: Request) {
 
         // 4. Validate tier (DB Re-check)
         if (serverData.tier === "premium" && currentPlan !== "premium") {
-            return NextResponse.json({ error: "Premium subscription required" }, { status: 403 })
+            let hasTempAccess = false;
+
+            // Check for specific server access
+            const specificAccessId = `${user.uid}_${serverId}`;
+            const specificAccessDoc = await adminDb.collection("temporary_access").doc(specificAccessId).get();
+
+            if (specificAccessDoc.exists) {
+                const data = specificAccessDoc.data();
+                // Handle Firestore Timestamp or Date string
+                const expiresAt = data?.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data?.expiresAt);
+                if (expiresAt > new Date()) {
+                    hasTempAccess = true;
+                }
+            }
+
+            // Check for universal access (if applicable)
+            if (!hasTempAccess) {
+                const allAccessId = `${user.uid}_ALL`;
+                const allAccessDoc = await adminDb.collection("temporary_access").doc(allAccessId).get();
+                if (allAccessDoc.exists) {
+                    const data = allAccessDoc.data();
+                    const expiresAt = data?.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data?.expiresAt);
+                    if (expiresAt > new Date()) {
+                        hasTempAccess = true;
+                    }
+                }
+            }
+
+            if (!hasTempAccess) {
+                return NextResponse.json({ error: "Premium subscription required" }, { status: 403 })
+            }
         }
 
         // 3. Fetch OVPN template
