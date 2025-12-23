@@ -91,7 +91,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading } = useAuth()
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -111,6 +111,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   // Redirect if not admin
+  useEffect(() => {
+    if (mounted && !loading) {
+      if (!user) {
+        router.push("/login")
+      } else if (user.role !== "admin") {
+        router.push("/user-dashboard")
+      }
+    }
+  }, [mounted, user, loading, router])
 
 
   const densityClasses = {
