@@ -54,7 +54,8 @@ import {
   Users,
   XCircle,
   Activity,
-  MoreVertical
+  MoreVertical,
+  RefreshCw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Removed direct import from user-service, using fetch now
@@ -110,19 +111,19 @@ export default function UsersPage() {
     loadUsers()
   }, [])
 
-  const loadUsers = async () => {
+  const loadUsers = async (forceRefresh = false) => {
     try {
       setLoading(true)
 
       const CACHE_KEY = "admin_users_list";
-      const cachedData = CacheService.get<{ users: any[] }>(CACHE_KEY);
 
-      if (cachedData) {
-        setUsers(cachedData.users);
-        setLoading(false);
-        // Optional: Re-fetch in background to update cache if needed, 
-        // but strict requirement is "once in 6 hours", so we trust cache.
-        return;
+      if (!forceRefresh) {
+        const cachedData = CacheService.get<{ users: any[] }>(CACHE_KEY);
+        if (cachedData) {
+          setUsers(cachedData.users);
+          setLoading(false);
+          return;
+        }
       }
 
       const res = await fetchWithAuth("/api/admin/users")
@@ -131,6 +132,10 @@ export default function UsersPage() {
 
       CacheService.set(CACHE_KEY, data);
       setUsers(data.users)
+
+      if (forceRefresh) {
+        toast.success("Refreshed", { description: "User list updated from server" })
+      }
     } catch (error) {
       console.error("Error loading users:", error)
       toast.error("Error", {
@@ -290,7 +295,7 @@ export default function UsersPage() {
           description: `User(s) deleted permanently.`
         })
         setSelectedUids([])
-        loadUsers()
+        loadUsers(true) // Force refresh to update cache
         setShowActionDialog(false)
         setConfirmInput("")
         return
@@ -310,7 +315,7 @@ export default function UsersPage() {
       toast.success("Success", {
         description: `User updated successfully. Logged as: ${data.debug?.admin}`
       })
-      loadUsers() // Reload to see changes
+      loadUsers(true) // Force refresh to see changes
 
       setShowActionDialog(false)
       setConfirmInput("")
@@ -610,6 +615,10 @@ export default function UsersPage() {
                     Delete ({selectedUids.length})
                   </Button>
                 )}
+                <Button variant="outline" className="gap-2 bg-transparent rounded-xl border-dashed" onClick={() => loadUsers(true)}>
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
                 <Button variant="outline" className="gap-2 bg-transparent rounded-xl border-dashed">
                   <Download className="h-4 w-4" />
                   Export
