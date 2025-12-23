@@ -12,10 +12,13 @@ export async function GET(request: Request) {
         const adminEmail = searchParams.get("admin");
         const fromDate = searchParams.get("from");
         const toDate = searchParams.get("to");
-        const lastTimestamp = searchParams.get("lastTimestamp");
+        const cursor = searchParams.get("cursor");
 
-        let query = adminDb.collection("activity_logs").orderBy("timestamp", "desc");
+        let query = adminDb.collection("activity_logs")
+            .orderBy("timestamp", "desc")
+            .orderBy("__name__", "desc"); // Secondary sort for stable pagination
 
+        // ... filters ...
         if (action && action !== "all") {
             query = query.where("action", "==", action);
         }
@@ -35,9 +38,11 @@ export async function GET(request: Request) {
             query = query.where("timestamp", "<=", end);
         }
 
-        if (lastTimestamp) {
-            // Firestore requires a Date object for Timestamp fields in startAfter
-            query = query.startAfter(new Date(lastTimestamp));
+        if (cursor) {
+            const [timestampStr, id] = cursor.split('|');
+            if (timestampStr && id) {
+                query = query.startAfter(new Date(timestampStr), id);
+            }
         }
 
         // Fetch limit + 1 to check if there are more
@@ -58,7 +63,9 @@ export async function GET(request: Request) {
         });
 
         const lastDoc = docs[docs.length - 1];
-        const nextCursor = hasMore && lastDoc ? lastDoc.data().timestamp?.toDate().toISOString() : null;
+        const nextCursor = hasMore && lastDoc
+            ? `${lastDoc.data().timestamp?.toDate().toISOString()}|${lastDoc.id}`
+            : null;
 
         return NextResponse.json({ logs, nextCursor, hasMore });
     } catch (error) {

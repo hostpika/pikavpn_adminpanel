@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils"
 import { fetchWithAuth } from "@/lib/api-client"
 import { toast } from "sonner"
 import { AdminAlert } from "@/components/admin-alert"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface LogEntry {
     id: string
@@ -48,20 +49,19 @@ export default function LogsPage() {
     const [adminFilter, setAdminFilter] = useState("")
     const [date, setDate] = useState<Date | undefined>(undefined)
 
-    // Pagination state
-    const [cursors, setCursors] = useState<(string | null)[]>([null])
-    const [currentPage, setCurrentPage] = useState(0)
-    const [hasNextPage, setHasNextPage] = useState(false)
-    const LIMIT = 20
+    // Client-side Pagination State
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 20
 
-    const loadLogs = async (cursor: string | null = null) => {
+    useEffect(() => {
+        loadLogs()
+    }, [actionFilter, date]) // adminFilter triggers via handleSearch
+
+    const loadLogs = async () => {
         try {
             setLoading(true)
-            let query = `/api/admin/logs?limit=${LIMIT}`
-
-            if (cursor) {
-                query += `&lastTimestamp=${cursor}`
-            }
+            // Fetch a large batch for client-side pagination (matching Users page behavior)
+            let query = `/api/admin/logs?limit=1000`
 
             if (actionFilter && actionFilter !== "all") {
                 query += `&action=${actionFilter}`
@@ -82,18 +82,7 @@ export default function LogsPage() {
             }
             const data = await res.json()
             setLogs(data.logs)
-            setHasNextPage(data.hasMore)
-
-            // If there's a next page, ensure we have the cursor for it stored
-            if (data.hasMore && data.nextCursor) {
-                setCursors(prev => {
-                    const newCursors = [...prev]
-                    // We are currently on 'currentPage'. The cursor to fetch THIS page was cursors[currentPage].
-                    // The cursor to fetch the NEXT page (currentPage + 1) is data.nextCursor.
-                    newCursors[currentPage + 1] = data.nextCursor
-                    return newCursors
-                })
-            }
+            setCurrentPage(1) // Reset to first page on new fetch
         } catch (error) {
             console.error("Error loading logs:", error)
             toast.error("Error", {
@@ -104,33 +93,18 @@ export default function LogsPage() {
         }
     }
 
-    const handleNext = () => {
-        if (hasNextPage) {
-            const nextPage = currentPage + 1
-            setCurrentPage(nextPage)
-            loadLogs(cursors[nextPage])
-        }
-    }
-
-    const handlePrevious = () => {
-        if (currentPage > 0) {
-            const prevPage = currentPage - 1
-            setCurrentPage(prevPage)
-            loadLogs(cursors[prevPage])
-        }
-    }
-
-    // Reset pagination when filters change
-    useEffect(() => {
-        setCurrentPage(0)
-        setCursors([null])
-        loadLogs(null)
-    }, [actionFilter, date]) // adminFilter triggers via handleSearch
-
     const handleSearch = () => {
-        setCurrentPage(0)
-        setCursors([null])
-        loadLogs(null)
+        loadLogs()
+    }
+
+    // Client-side Pagination Logic
+    const totalPages = Math.ceil(logs.length / itemsPerPage)
+    const paginatedLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage)
+        }
     }
 
     const getActionColor = (action: string) => {
@@ -157,7 +131,7 @@ export default function LogsPage() {
                             <CardDescription>Recent actions performed by administrators.</CardDescription>
                         </div>
                         <div className="flex gap-2 items-center">
-                            <Button variant="outline" size="sm" onClick={() => loadLogs(cursors[currentPage])} title="Refresh Logs" className="rounded-full h-8 w-8 p-0">
+                            <Button variant="outline" size="sm" onClick={() => loadLogs()} title="Refresh Logs" className="rounded-full h-8 w-8 p-0">
                                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
                             </Button>
                         </div>
@@ -229,14 +203,35 @@ export default function LogsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {logs.length === 0 ? (
+                                {loading ? (
+                                    [...Array(10)].map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <Skeleton className="h-4 w-32" />
+                                                    <Skeleton className="h-3 w-20" />
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><Skeleton className="h-6 w-16 px-2 rounded-full" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-16 rounded-md" /></TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <Skeleton className="h-4 w-24" />
+                                                    <Skeleton className="h-3 w-16" />
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><Skeleton className="h-4 w-full max-w-[200px]" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : logs.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="h-24 text-center">
-                                            {loading ? "Loading logs..." : "No logs found matching your criteria."}
+                                            No logs found matching your criteria.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    logs.map((log) => (
+                                    paginatedLogs.map((log) => (
                                         <TableRow key={log.id}>
                                             <TableCell className="whitespace-nowrap">
                                                 {format(new Date(log.timestamp), "MMM d, HH:mm")}
@@ -274,33 +269,40 @@ export default function LogsPage() {
                     </div>
 
                     {/* Pagination Controls */}
-                    <div className="flex items-center justify-between py-4">
-                        <div className="text-sm text-muted-foreground">
-                            Page {currentPage + 1}
+                    {logs.length > 0 && (
+                        <div className="flex items-center justify-between py-4">
+                            <p className="text-sm text-muted-foreground">
+                                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, logs.length)} of {logs.length} entries
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="rounded-xl h-8 px-3"
+                                >
+                                    <ChevronLeft className="mr-1 h-4 w-4" />
+                                    Previous
+                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-sm font-medium mx-2">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="rounded-xl h-8 px-3"
+                                >
+                                    Next
+                                    <ChevronRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handlePrevious}
-                                disabled={currentPage === 0 || loading}
-                                className="rounded-xl h-8 px-3"
-                            >
-                                <ChevronLeft className="mr-1 h-4 w-4" />
-                                Previous
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleNext}
-                                disabled={!hasNextPage || loading}
-                                className="rounded-xl h-8 px-3"
-                            >
-                                Next
-                                <ChevronRight className="ml-1 h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

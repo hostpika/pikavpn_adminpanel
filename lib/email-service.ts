@@ -149,7 +149,7 @@ function generateHtml(username: string, context: ReturnType<typeof getTemplateCo
                     <tr>
                         <td style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
                             <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                                &copy; 2024 FreeShield VPN. All rights reserved.<br>
+                                &copy; 2026 FreeShield VPN. All rights reserved.<br>
                                 123 Secure Street, Privacy City, Web 3.0
                             </p>
                         </td>
@@ -217,6 +217,7 @@ export async function sendUserStatusEmail(toEmail: string, params: EmailTemplate
         }
     });
 
+
     try {
         await transporter.sendMail({
             from: `"${config.fromName}" <${config.fromEmail}>`,
@@ -227,5 +228,73 @@ export async function sendUserStatusEmail(toEmail: string, params: EmailTemplate
         console.log(`Email sent successfully to ${toEmail}`);
     } catch (error) {
         console.error('Failed to send email:', error);
+    }
+}
+
+export async function sendCustomEmail(toEmail: string, subject: string, message: string) {
+    if (!toEmail || !toEmail.includes('@')) {
+        console.warn(`Skipping email: Invalid address '${toEmail}'`);
+        return;
+    }
+
+    const config = await getSmtpConfig();
+    if (!config) {
+        console.warn('Skipping email: SMTP settings not configured or not found in DB.');
+        return;
+    }
+
+    // Basic HTML wrapper for custom emails
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<body style="background-color: #f4f6f9; margin: 0; padding: 40px 0; font-family: sans-serif;">
+    <table align="center" width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
+        <tr>
+            <td style="padding: 40px;">
+                <h2 style="color: #333333; margin-top: 0;">FreeShield VPN</h2>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <div style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                    ${message.replace(/\n/g, '<br>')}
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+                <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+                    &copy; ${new Date().getFullYear()} FreeShield VPN. All rights reserved.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+
+    const port = Number(config.port);
+    const isSSLPort = port === 465;
+    const isSTARTTLSPort = port === 587;
+
+    let useSecure = isSSLPort;
+    if (!isSSLPort && !isSTARTTLSPort && config.encryption === 'ssl') {
+        useSecure = true;
+    }
+
+    const transporter = nodemailer.createTransport({
+        host: config.host,
+        port: port,
+        secure: useSecure,
+        auth: {
+            user: config.username,
+            pass: config.password,
+        },
+        tls: { rejectUnauthorized: false }
+    });
+
+    try {
+        await transporter.sendMail({
+            from: `"${config.fromName}" <${config.fromEmail}>`,
+            to: toEmail,
+            subject: subject,
+            html: htmlContent,
+        });
+        console.log(`Custom email sent successfully to ${toEmail}`);
+    } catch (error) {
+        console.error('Failed to send custom email:', error);
+        throw error; // Re-throw to let API know it failed
     }
 }

@@ -30,6 +30,8 @@ import {
   type UserGrowthDataPoint,
 } from "@/lib/dashboard-service"
 import { toast } from "sonner"
+import { CacheService } from "@/lib/cache-service"
+import { DashboardSkeleton } from "@/components/dashboard-skeleton"
 
 export default function DashboardPage() {
 
@@ -49,6 +51,21 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      const CACHE_KEY = "admin_dashboard_stats";
+      const cached = CacheService.get<any>(CACHE_KEY);
+
+      if (cached) {
+        setStats(cached.stats);
+        setConnectionData(cached.connData);
+        setServerData(cached.srvData);
+        setUserData(cached.usrData);
+        setTopCountries(cached.countries);
+        setRecentActivity(cached.activity);
+        setSystemHealth(cached.health);
+        setLoading(false);
+        return;
+      }
+
       const [statsData, connData, srvData, usrData, countries, activity, health] = await Promise.all([
         getDashboardStats(),
         getConnectionData(),
@@ -58,6 +75,17 @@ export default function DashboardPage() {
         getRecentActivity(),
         getSystemHealth(),
       ])
+
+      const dataToCache = {
+        stats: statsData,
+        connData,
+        srvData,
+        usrData,
+        countries,
+        activity,
+        health
+      };
+      CacheService.set(CACHE_KEY, dataToCache);
 
       setStats(statsData)
       setConnectionData(connData)
@@ -77,11 +105,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   const statCards = [

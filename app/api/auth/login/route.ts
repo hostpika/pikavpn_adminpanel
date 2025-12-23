@@ -27,25 +27,23 @@ export async function POST(request: Request) {
                 uid,
                 email: decodedToken.email || "",
                 displayName: decodedToken.name || (isAnonymous ? "Anonymous User" : "Guest User"),
-                role: "admin", // Default to admin for the Admin Panel
+                role: "user", // Default to user, NOT admin
                 plan: "free",
                 status: "active",
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }
             await adminDb.collection("users").doc(uid).set(userData)
-        } else if (userData && userData.role !== "admin") {
-            // Auto-promote existing users to admin for this panel if they log in here
-            // This assumes only authorized personnel access this URL
-            await adminDb.collection("users").doc(uid).update({ role: "admin" })
-            userData.role = "admin"
         }
+
+        // Ensure we respect the existing role from DB
+        const currentRole = userData?.role || "user"
 
         // Issue backend JWT with standardized claims
         const payload = {
             uid,
             email: decodedToken.email,
-            role: "admin", // Enforce admin role in token
+            role: currentRole, // Use actual role from DB
             plan: userData?.plan || "free",
         }
 

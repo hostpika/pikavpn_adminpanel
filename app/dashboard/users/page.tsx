@@ -29,6 +29,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
+import { CacheService } from "@/lib/cache-service"
+
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -48,7 +51,6 @@ import {
   UserCog,
   Mail,
   Eye,
-  Loader2,
   Users,
   XCircle,
   Activity,
@@ -91,9 +93,11 @@ export default function UsersPage() {
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showActionDialog, setShowActionDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
-  const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium" | null>(null)
+  const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium" | "send_email" | null>(null)
 
   const [actionForm, setActionForm] = useState({ duration: "30", reason: "" })
+  const [emailForm, setEmailForm] = useState({ subject: "", message: "" })
+  const [isActionProcessing, setIsActionProcessing] = useState(false)
 
   const [selectedUids, setSelectedUids] = useState<string[]>([])
   const [confirmInput, setConfirmInput] = useState("")
@@ -109,14 +113,28 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
+
+      const CACHE_KEY = "admin_users_list";
+      const cachedData = CacheService.get<{ users: any[] }>(CACHE_KEY);
+
+      if (cachedData) {
+        setUsers(cachedData.users);
+        setLoading(false);
+        // Optional: Re-fetch in background to update cache if needed, 
+        // but strict requirement is "once in 6 hours", so we trust cache.
+        return;
+      }
+
       const res = await fetchWithAuth("/api/admin/users")
       if (!res.ok) throw new Error("Failed to fetch users")
       const data = await res.json()
+
+      CacheService.set(CACHE_KEY, data);
       setUsers(data.users)
     } catch (error) {
       console.error("Error loading users:", error)
       toast.error("Error", {
-        description: "Failed to load users. Please try again.",
+        description: "Failed to load users. Please refresh the page.",
       })
     } finally {
       setLoading(false)
@@ -201,15 +219,18 @@ export default function UsersPage() {
     setShowDetailDialog(true)
   }
 
-  const openActionDialog = (user: UserData | null, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium") => {
+  const openActionDialog = (user: UserData | null, action: "suspend" | "unsuspend" | "grant" | "delete" | "make_admin" | "remove_admin" | "revoke_premium" | "send_email") => {
     setSelectedUser(user)
     setActionType(action)
     setConfirmInput("")
+    setActionForm({ duration: "30", reason: "" })
+    setEmailForm({ subject: "", message: "" })
     setShowActionDialog(true)
   }
 
   const handleAction = async () => {
     if (!actionType || (!selectedUser && selectedUids.length === 0)) return
+    setIsActionProcessing(true)
 
     // Confirmation check for delete
     if (actionType === "delete") {
@@ -241,6 +262,14 @@ export default function UsersPage() {
       } else if (actionType === "remove_admin") {
         payload.action = "set_role"
         payload.payload = { role: "user" }
+      } else if (actionType === "send_email") {
+        endpoint = "/api/admin/users/email"
+        method = "POST"
+        payload = {
+          uid: selectedUser?.id || selectedUser?.uid,
+          subject: emailForm.subject,
+          message: emailForm.message
+        }
       }
 
       // For delete, we call our new hard delete API
@@ -291,6 +320,8 @@ export default function UsersPage() {
       toast.error("Error", {
         description: error.message || "Failed to perform action.",
       })
+    } finally {
+      setIsActionProcessing(false)
     }
   }
 
@@ -588,11 +619,7 @@ export default function UsersPage() {
           </CardHeader>
 
           <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredUsers.length === 0 ? (
+            {!loading && filteredUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No users found</h3>
@@ -623,135 +650,158 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedUsers.map((user, index) => (
-                      <TableRow key={user.uid || user.id || index} className={cn(selectedUids.includes(user.uid || user.id) && "bg-muted/50")}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUids.includes(user.uid || user.id)}
-                            onCheckedChange={() => toggleSelectUser(user.uid || user.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={user.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${user.name}`} />
-                              <AvatarFallback>
-                                {(user.name || "User")
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-semibold flex items-center gap-2">
-                                {user.name}
-                                {user.role === "admin" && <Badge variant="secondary" className="text-[10px] h-4">Admin</Badge>}
+                    {loading ? (
+                      [...Array(10)].map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-8 w-8 rounded-full" />
+                              <div className="space-y-1">
+                                <Skeleton className="h-3 w-24" />
+                                <Skeleton className="h-3 w-32" />
                               </div>
-                              <div className="text-xs text-muted-foreground">{user.email}</div>
-                              <div className="text-[10px] text-muted-foreground uppercase">{user.provider}</div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={cn("gap-1", getStatusColor(user.status))}>
-                            {getStatusIcon(user.status)}
-                            {user.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.plan === "premium" ? (
-                            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">Premium</Badge>
-                          ) : user.plan === "basic" ? (
-                            <Badge variant="secondary">Basic</Badge>
-                          ) : (
-                            <Badge variant="outline">Free</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">{user.registrationDate}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">{user.lastLogin}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <div>{user.totalConnectionTime}</div>
-                            <div className="text-muted-foreground">{user.dataTransferred}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openDetailDialog(user)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
+                          </TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-8 w-8 rounded-full ml-auto" /></TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      paginatedUsers.map((user, index) => (
+                        <TableRow key={user.uid || user.id || index} className={cn(selectedUids.includes(user.uid || user.id) && "bg-muted/50")}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedUids.includes(user.uid || user.id)}
+                              onCheckedChange={() => toggleSelectUser(user.uid || user.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={user.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${user.name}`} />
+                                <AvatarFallback>
+                                  {(user.name || "User")
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-semibold flex items-center gap-2">
+                                  {user.name}
+                                  {user.role === "admin" && <Badge variant="secondary" className="text-[10px] h-4">Admin</Badge>}
+                                </div>
+                                <div className="text-xs text-muted-foreground">{user.email}</div>
+                                <div className="text-[10px] text-muted-foreground uppercase">{user.provider}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={cn("gap-1", getStatusColor(user.status))}>
+                              {getStatusIcon(user.status)}
+                              {user.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.plan === "premium" ? (
+                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">Premium</Badge>
+                            ) : user.plan === "basic" ? (
+                              <Badge variant="secondary">Basic</Badge>
+                            ) : (
+                              <Badge variant="outline">Free</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{user.registrationDate}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{user.lastLogin}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-xs">
+                              <div>{user.totalConnectionTime}</div>
+                              <div className="text-muted-foreground">{user.dataTransferred}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openDetailDialog(user)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
 
-                              {/* Admin Actions Only - Checked via role */}
-                              {/* @ts-ignore - Check for role existence */}
-                              {currentUser?.role === "admin" && (
-                                <>
-                                  <DropdownMenuItem>
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Send Email
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {user.plan !== "premium" && user.status !== "premium" && (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "grant")}>
-                                      <Crown className="mr-2 h-4 w-4" />
-                                      Grant Premium
+                                {/* Admin Actions Only - Checked via role */}
+                                {/* @ts-ignore - Check for role existence */}
+                                {currentUser?.role === "admin" && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "send_email")}>
+                                      <Mail className="mr-2 h-4 w-4" />
+                                      Send Email
                                     </DropdownMenuItem>
-                                  )}
-                                  {(user.plan === "premium" || user.status === "premium") && (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "revoke_premium")}>
-                                      <XCircle className="mr-2 h-4 w-4" />
-                                      Remove Premium
+                                    <DropdownMenuSeparator />
+                                    {user.plan !== "premium" && user.status !== "premium" && (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "grant")}>
+                                        <Crown className="mr-2 h-4 w-4" />
+                                        Grant Premium
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(user.plan === "premium" || user.status === "premium") && (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "revoke_premium")}>
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        Remove Premium
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.status !== "suspended" && (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "suspend")}>
+                                        <Ban className="mr-2 h-4 w-4" />
+                                        Ban User
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.status === "suspended" && (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "unsuspend")}>
+                                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        Reactivate Account
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    {user.role !== "admin" ? (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "make_admin")}>
+                                        <Crown className="mr-2 h-4 w-4" />
+                                        Make Admin
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem onClick={() => openActionDialog(user, "remove_admin")}>
+                                        <Ban className="mr-2 h-4 w-4" />
+                                        Remove Admin
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => openActionDialog(user, "delete")}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Account
                                     </DropdownMenuItem>
-                                  )}
-                                  {user.status !== "suspended" && (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "suspend")}>
-                                      <Ban className="mr-2 h-4 w-4" />
-                                      Ban User
-                                    </DropdownMenuItem>
-                                  )}
-                                  {user.status === "suspended" && (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "unsuspend")}>
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Reactivate Account
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator />
-                                  {user.role !== "admin" ? (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "make_admin")}>
-                                      <Crown className="mr-2 h-4 w-4" />
-                                      Make Admin
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem onClick={() => openActionDialog(user, "remove_admin")}>
-                                      <Ban className="mr-2 h-4 w-4" />
-                                      Remove Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => openActionDialog(user, "delete")}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Account
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -889,10 +939,34 @@ export default function UsersPage() {
                 {actionType === "remove_admin" && "This user will lose admin privileges."}
                 {actionType === "unsuspend" && "This user will be able to access the app again."}
                 {actionType === "revoke_premium" && "This will revert the user to the free tier immediately."}
+                {actionType === "send_email" && "Send a custom email notification to this user."}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              {actionType === "send_email" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      placeholder="Enter email subject"
+                      value={emailForm.subject}
+                      onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Enter your message here..."
+                      className="min-h-[150px]"
+                      value={emailForm.message}
+                      onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
               {actionType === "grant" && (
                 <div className="space-y-2">
                   <Label htmlFor="duration">Duration (days)</Label>
@@ -953,8 +1027,9 @@ export default function UsersPage() {
               <Button
                 variant={actionType === "delete" ? "destructive" : "default"}
                 onClick={handleAction}
-                disabled={actionType === "delete" && confirmInput !== (selectedUids.length > 0 ? "DELETE ALL" : selectedUser?.email)}
+                disabled={isActionProcessing || (actionType === "delete" && confirmInput !== (selectedUids.length > 0 ? "DELETE ALL" : selectedUser?.email))}
               >
+                {/* {isActionProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} */}
                 {actionType === "suspend" && "Suspend Account"}
                 {actionType === "unsuspend" && "Unsuspend Account"}
                 {actionType === "grant" && "Grant Premium"}
@@ -962,6 +1037,7 @@ export default function UsersPage() {
                 {actionType === "make_admin" && "Make Admin"}
                 {actionType === "remove_admin" && "Remove Admin"}
                 {actionType === "revoke_premium" && "Remove Premium"}
+                {actionType === "send_email" && "Send Email"}
               </Button>
             </DialogFooter>
           </DialogContent>
