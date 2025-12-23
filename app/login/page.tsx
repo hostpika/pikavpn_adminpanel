@@ -85,7 +85,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-3xl font-bold">Welcome Back</CardTitle>
-            <CardDescription className="text-base mt-2">Sign in to access the SuperVPN Pro admin panel</CardDescription>
+            <CardDescription className="text-base mt-2">Sign in to access the FreeShield VPN Pro admin panel</CardDescription>
           </div>
         </CardHeader>
 

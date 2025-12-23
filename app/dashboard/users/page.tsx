@@ -297,7 +297,7 @@ export default function UsersPage() {
   const stats = {
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
-    premium: users.filter((u) => u.status === "premium").length,
+    premium: users.filter((u) => u.plan === "premium" || u.status === "premium").length,
     deleted: users.filter((u) => u.status === "deleted").length,
     suspended: users.filter((u) => u.status === "suspended").length,
   }
@@ -701,10 +701,12 @@ export default function UsersPage() {
                                     Send Email
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => openActionDialog(user, "grant")}>
-                                    <Crown className="mr-2 h-4 w-4" />
-                                    Grant Premium
-                                  </DropdownMenuItem>
+                                  {user.plan !== "premium" && user.status !== "premium" && (
+                                    <DropdownMenuItem onClick={() => openActionDialog(user, "grant")}>
+                                      <Crown className="mr-2 h-4 w-4" />
+                                      Grant Premium
+                                    </DropdownMenuItem>
+                                  )}
                                   {(user.plan === "premium" || user.status === "premium") && (
                                     <DropdownMenuItem onClick={() => openActionDialog(user, "revoke_premium")}>
                                       <XCircle className="mr-2 h-4 w-4" />

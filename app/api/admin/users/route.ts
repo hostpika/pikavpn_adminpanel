@@ -2,11 +2,30 @@ import { NextResponse } from "next/server"
 import { adminAuth, adminDb } from "@/lib/internal/firebase"
 import { getUserFromRequest } from "@/lib/internal/permissions"
 import { logAdminAction } from "@/lib/logger"
+import { sendUserStatusEmail } from "@/lib/email-service"
 
 async function checkAdmin(request: Request) {
     const user = await getUserFromRequest(request)
     if (!user || user.role !== "admin") return null
     return user
+}
+
+// Helper to get user details for email
+async function getUserDetails(uid: string) {
+    try {
+        const user = await adminAuth.getUser(uid)
+        return {
+            email: user.email,
+            displayName: user.displayName || "User"
+        }
+    } catch (e) {
+        // Fallback to Firestore if Auth fails (unlikely for active users)
+        const doc = await adminDb.collection("users").doc(uid).get()
+        return {
+            email: doc.data()?.email,
+            displayName: doc.data()?.displayName || "User"
+        }
+    }
 }
 
 export async function GET(request: Request) {
@@ -79,11 +98,27 @@ export async function PUT(request: Request) {
             await adminDb.collection("users").doc(uid).set({ status: "suspended" }, { merge: true })
             await adminAuth.updateUser(uid, { disabled: true })
             await logAdminAction(admin.uid as string, admin.email as string, "BAN", "USER", `Banned user ${uid}`, uid)
+
+            const targetUser = await getUserDetails(uid)
+            if (targetUser.email) {
+                await sendUserStatusEmail(targetUser.email, {
+                    username: targetUser.displayName,
+                    scenario: 'account_banned'
+                })
+            }
         }
         else if (action === "unban") {
             await adminDb.collection("users").doc(uid).set({ status: "active" }, { merge: true })
             await adminAuth.updateUser(uid, { disabled: false })
             await logAdminAction(admin.uid as string, admin.email as string, "UNBAN", "USER", `Unbanned user ${uid}`, uid)
+
+            const targetUser = await getUserDetails(uid)
+            if (targetUser.email) {
+                await sendUserStatusEmail(targetUser.email, {
+                    username: targetUser.displayName,
+                    scenario: 'account_reactivated'
+                })
+            }
         }
         else if (action === "set_plan") {
             // payload: { plan: "premium" | "free" }
@@ -91,12 +126,42 @@ export async function PUT(request: Request) {
             // Only update plan, preserve existing status (active/suspended/etc)
             await adminDb.collection("users").doc(uid).set({ plan: plan }, { merge: true })
             await logAdminAction(admin.uid as string, admin.email as string, "UPDATE_PLAN", "USER", `Set user ${uid} plan to ${plan}`, uid)
+
+            const targetUser = await getUserDetails(uid)
+            if (targetUser.email) {
+                if (plan === 'premium') {
+                    await sendUserStatusEmail(targetUser.email, {
+                        username: targetUser.displayName,
+                        scenario: 'premium_granted'
+                    })
+                } else {
+                    await sendUserStatusEmail(targetUser.email, {
+                        username: targetUser.displayName,
+                        scenario: 'premium_revoked'
+                    })
+                }
+            }
         }
         else if (action === "set_role") {
             // payload: { role: "admin" | "user" }
             const role = payload?.role || "user"
             await adminDb.collection("users").doc(uid).set({ role }, { merge: true })
             await logAdminAction(admin.uid as string, admin.email as string, "UPDATE_ROLE", "USER", `Set user ${uid} role to ${role}`, uid)
+
+            const targetUser = await getUserDetails(uid)
+            if (targetUser.email) {
+                if (role === 'admin') {
+                    await sendUserStatusEmail(targetUser.email, {
+                        username: targetUser.displayName,
+                        scenario: 'admin_granted'
+                    })
+                } else if (role === 'user') {
+                    await sendUserStatusEmail(targetUser.email, {
+                        username: targetUser.displayName,
+                        scenario: 'admin_revoked'
+                    })
+                }
+            }
         }
         else {
             // Fallback for direct updates if needed (legacy or other fields)

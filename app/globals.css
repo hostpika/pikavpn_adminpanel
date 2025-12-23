@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* New vibrant color scheme for SuperVPN Pro with electric blue, cyan, and purple accents */
+/* New vibrant color scheme for FreeShield VPN Pro with electric blue, cyan, and purple accents */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
