@@ -16,8 +16,8 @@ export async function GET(request: Request) {
             // We return ALL active servers so the client can show "locked" premium servers for upsell.
             .map((server: any) => ({
                 id: server.id,
-                country: server.country || server.name?.split("-")[0] || "Unknown",
-                city: server.city || "Various",
+                country: server.country || "Unknown",
+                city: server.name || "Unknown",
                 tier: server.tier || "free",
                 features: server.features || ["basic"],
                 load: server.load || 0,
