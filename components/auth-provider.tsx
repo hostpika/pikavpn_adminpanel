@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User, ActivityLog } from "@/lib/auth-service"
 import { authService } from "@/lib/auth-service"
+import { CacheService } from "@/lib/cache-service"
 import { useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { onAuthStateChanged } from "firebase/auth"
@@ -45,18 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     if (!response.ok) throw new Error("Backend login failed")
 
-                    const { accessToken } = await response.json()
+                    const { accessToken, user: backendUser } = await response.json()
                     localStorage.setItem("backend_token", accessToken)
 
-                    // Decode token or fetch user from backend (for now manually set from firebase info)
-                    // In a more robust implementation, we'd fetch the full user profile from /api/admin/profile or similar
-                    // But for now, we'll use the Firebase user info and assume the backend handled verification.
+                    // Use the user data returned from the backend
                     const appUser: User = {
                         uid: firebaseUser.uid,
-                        email: firebaseUser.email || "",
-                        displayName: firebaseUser.displayName || "Admin User",
-                        photoURL: firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
-                        role: "admin" // For the admin panel, we assume the user logged in is an admin
+                        email: backendUser.email || firebaseUser.email || "",
+                        displayName: backendUser.displayName || firebaseUser.displayName || "User",
+                        photoURL: backendUser.photoURL || firebaseUser.photoURL || "/placeholder.svg?height=40&width=40",
+                        role: backendUser.role // Now correctly using the role from backend
                     }
                     setUser(appUser)
                 } catch (error) {
@@ -76,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signOut = async () => {
         await authService.signOut()
+        CacheService.clear()
         setUser(null)
         router.push("/login")
     }

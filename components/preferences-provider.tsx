@@ -40,6 +40,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!user) return
 
+    // Only fetch admin preferences if the user is an admin
+    // This prevents 401 errors for normal users who might briefly be logged in before redirection
+    if (user.role !== 'admin') return
+
     const fetchPreferences = async () => {
       try {
         const res = await fetchWithAuth("/api/admin/preferences")

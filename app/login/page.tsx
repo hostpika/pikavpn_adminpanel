@@ -31,7 +31,16 @@ export default function LoginPage() {
     const password = formData.get("password") as string
 
     try {
-      await authService.signIn(email, password)
+      const user = await authService.signIn(email, password)
+
+      if (user.role !== "admin") {
+        await authService.signOut()
+        toast.error("Login Failed", {
+          description: "Access Restricted: You do not have administrator privileges."
+        })
+        return
+      }
+
       toast.success("Welcome back!", {
         description: "You have successfully signed in.",
       })
@@ -40,7 +49,7 @@ export default function LoginPage() {
       console.error("Login error:", err)
       let message = "Invalid email or password. Please try again."
 
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
         message = "Invalid email or password."
       } else if (err.code === 'auth/too-many-requests') {
         message = "Too many failed attempts. Please try again later."
@@ -59,16 +68,36 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
     try {
-      await authService.signInWithGoogle()
+      const user = await authService.signInWithGoogle()
+
+      if (user.role !== "admin") {
+        await authService.signOut()
+        toast.error("Login Failed", {
+          description: "Access Restricted: You do not have administrator privileges."
+        })
+        return
+      }
+
       toast.success("Welcome back!", {
         description: "You have successfully signed in with Google.",
       })
       router.push("/dashboard")
     } catch (err: any) {
       console.error("Google login error:", err)
-      toast.error("Login Failed", {
-        description: "Failed to sign in with Google. Please try again.",
-      })
+
+      if (err.message && err.message.includes("Access Restricted")) {
+        toast.error("Login Failed", {
+          description: err.message,
+        })
+      } else if (err.code === 'auth/popup-blocked') {
+        toast.error("Login Failed", {
+          description: "Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.",
+        })
+      } else {
+        toast.error("Login Failed", {
+          description: "Failed to sign in with Google. Please try again.",
+        })
+      }
     } finally {
       setIsLoading(false)
     }

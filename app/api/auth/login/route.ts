@@ -51,7 +51,15 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             accessToken,
-            expiresIn: 3600, // Matching the signJWT expiration of 2h? Wait, spec says 3600
+            user: {
+                uid: payload.uid,
+                email: payload.email,
+                role: payload.role,
+                plan: payload.plan,
+                displayName: userData?.displayName,
+                photoURL: userData?.photoURL || (decodedToken.picture as string),
+            },
+            expiresIn: 3600,
         })
     } catch (error) {
         console.error("Login API Error:", error)

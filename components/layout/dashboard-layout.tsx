@@ -110,6 +110,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }
 
+  // Redirect if not admin
+
+
   const densityClasses = {
     compact: { py: "py-1.5", gap: "gap-2", textSize: "text-xs", iconSize: "h-4 w-4" },
     comfortable: { py: "py-2.5", gap: "gap-3", textSize: "text-sm", iconSize: "h-5 w-5" },
@@ -341,6 +344,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     </>
   )
+
+
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">

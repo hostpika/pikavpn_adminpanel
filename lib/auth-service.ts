@@ -9,6 +9,7 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
   type User as FirebaseUser
 } from "firebase/auth"
 import {
@@ -101,8 +102,11 @@ class AuthService {
 
       // Fetch or Initialize Firestore User Data
       return this.handleUserLogin(user)
-    } catch (error) {
-      console.error("Sign in failed", error)
+    } catch (error: any) {
+      // Only log unexpected errors
+      if (error.code !== 'auth/wrong-password' && error.code !== 'auth/user-not-found' && error.code !== 'auth/invalid-credential') {
+        console.error("Sign in failed", error)
+      }
       throw error
     }
   }
@@ -110,6 +114,10 @@ class AuthService {
   async signInWithGoogle(): Promise<User> {
     try {
       const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({
+        prompt: "select_account"
+      })
+
       const userCredential = await signInWithPopup(auth, provider)
       const user = userCredential.user
 
@@ -213,6 +221,15 @@ class AuthService {
 
     await firebaseUpdatePassword(user, newPassword)
     await this.logActivity(user.uid, "Security Update", "Changed account password")
+  }
+
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    try {
+      await sendPasswordResetEmail(auth, email)
+    } catch (error) {
+      console.error("Failed to send password reset email", error)
+      throw error
+    }
   }
 
   async getRecentActivity(uid: string): Promise<ActivityLog[]> {
