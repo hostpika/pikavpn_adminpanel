@@ -6,7 +6,7 @@
 ## 1. PROJECT OVERVIEW
 
 ### 1.1 Product Name
-**SuperVPN - Secure & Fast VPN**
+**FreeShield VPN - Secure & Fast VPN**
 
 ### 1.2 Product Vision
 A free-to-use, premium-upgradable VPN application built with Flutter that provides secure internet access through OpenVPN protocol, supporting both VPN Gate public servers and Namecheap VPN premium servers with integrated monetization through AdMob and Facebook Audience Network. **All critical configurations are backend-controlled for maximum flexibility.**
@@ -300,16 +300,16 @@ Future<bool> verifyToken() async {
     "anonymousAccess": true
   },
   "uiTexts": {
-    "welcomeMessage": "Welcome to SuperVPN",
+    "welcomeMessage": "Welcome to FreeShield VPN",
     "maintenanceMessage": "We're currently under maintenance. Please check back soon.",
     "premiumCTA": "Unlock Premium Features",
     "connectionSuccessMessage": "You are now protected",
     "signUpCTA": "Sign up for premium access",
     "premiumRequiredMessage": "Premium subscription required for this server"
   },
-  "supportEmail": "support@supervpn.com",
-  "privacyPolicyUrl": "https://supervpn.com/privacy",
-  "termsOfServiceUrl": "https://supervpn.com/terms"
+  "supportEmail": "support@FreeShield VPN.com",
+  "privacyPolicyUrl": "https://FreeShield VPN.com/privacy",
+  "termsOfServiceUrl": "https://FreeShield VPN.com/terms"
 }
 ```
 
@@ -1295,7 +1295,7 @@ class AppConfig {
         'anonymousAccess': true,
       },
       uiTexts: {
-        'welcomeMessage': 'Welcome to SuperVPN',
+        'welcomeMessage': 'Welcome to FreeShield VPN',
         'premiumCTA': 'Upgrade to Premium',
         'signUpCTA': 'Sign up for premium access',
       },

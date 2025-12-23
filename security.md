@@ -59,9 +59,9 @@ Use the following Markdown spec as the source of truth and implement accordingly
 2️⃣ ENHANCED BACKEND ARCHITECTURE – MARKDOWN SPEC
 
 Save this as:
-supervpn-backend-secure-spec.md
+FreeShield VPN-backend-secure-spec.md
 
-# SuperVPN Secure Backend Architecture – Phase 1
+# FreeShield VPN Secure Backend Architecture – Phase 1
 
 ## Purpose
 Convert an existing Next.js admin panel into a **secure backend API + admin UI** for a VPN application.

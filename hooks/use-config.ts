@@ -107,7 +107,7 @@ const defaultConfig: ConfigState = {
     ui: {
         primaryColor: "#3b82f6",
         accentColor: "#06b6d4",
-        appName: "SuperVPN Pro",
+        appName: "FreeShield VPN Pro",
         logoUrl: "https://example.com/logo.png",
         showcaseText: "Fast and secure VPN connections worldwide. Protect your privacy with military-grade encryption.",
     },
