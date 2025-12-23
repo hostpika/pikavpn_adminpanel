@@ -240,6 +240,17 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
                 </nav>
             </div>
 
+            <div className="mt-auto px-4 py-4 text-center">
+                {!isCollapsed && (
+                    <div className="animate-fade-in opacity-20 hover:opacity-100 transition-opacity duration-300">
+                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                            Tynybite Labs
+                        </h2>
+                        <p className="text-xs font-medium text-muted-foreground mt-1">Made with Love ❤️</p>
+                    </div>
+                )}
+            </div>
+
             <div className="border-t p-4">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

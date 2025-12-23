@@ -121,6 +121,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [mounted, user, loading, router])
 
+  // Prevent rendering for unauthorized users
+  if (!mounted || loading || !user || user.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
 
   const densityClasses = {
     compact: { py: "py-1.5", gap: "gap-2", textSize: "text-xs", iconSize: "h-4 w-4" },
@@ -305,6 +314,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <NavLink key={item.name} item={item} isCollapsed={isCollapsed} />
           ))}
         </nav>
+      </div>
+
+      <div className="mt-auto px-4 py-4 text-center">
+        {!isCollapsed && (
+          <div className="animate-fade-in opacity-20 hover:opacity-100 transition-opacity duration-300">
+            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+              Tynybite Labs
+            </h2>
+            <p className="text-xs font-medium text-muted-foreground mt-1">Made with Love ❤️</p>
+          </div>
+        )}
       </div>
 
       <div className="border-t p-4">
