@@ -81,18 +81,32 @@ export async function POST(request: Request) {
         // Note: In Phase 1, we assume the ovpnFileUrl points to a file in Firebase Storage.
         // We should read the content directly from Storage.
         let ovpnConfig = ""
-        if (serverData.ovpnFileUrl) {
+        if (serverData.ovpnFileUrl || serverData.ovpnFilePath) {
             try {
                 // Extract file path from URL or use a dedicated field if available
                 // For now, let's assume we can get the file from the bucket
                 const bucket = adminStorage.bucket()
-                // Simulating extraction since we don't have the exact path mapping yet
-                // In a real scenario, you'd store the storage path directly.
-                const matches = serverData.ovpnFileUrl.match(/\/o\/(.+?)\?/)
-                if (matches && matches[1]) {
-                    const filePath = decodeURIComponent(matches[1])
-                    const [fileContent] = await bucket.file(filePath).download()
+
+                if (serverData.ovpnFilePath) {
+                    const [fileContent] = await bucket.file(serverData.ovpnFilePath).download()
                     ovpnConfig = fileContent.toString("utf-8")
+                } else if (serverData.ovpnFileUrl) {
+                    // Fallback to regex for legacy /o/ URLs
+                    const matches = serverData.ovpnFileUrl.match(/\/o\/(.+?)\?/)
+                    if (matches && matches[1]) {
+                        const filePath = decodeURIComponent(matches[1])
+                        const [fileContent] = await bucket.file(filePath).download()
+                        ovpnConfig = fileContent.toString("utf-8")
+                    } else {
+                        // Final Fallback: Try fetching the URL directly (works for GCS signed URLs)
+                        console.log("Attempting to fetch OVPN config directly from URL...");
+                        const response = await fetch(serverData.ovpnFileUrl);
+                        if (response.ok) {
+                            ovpnConfig = await response.text();
+                        } else {
+                            console.error("Failed to fetch OVPN from URL. Status:", response.status);
+                        }
+                    }
                 }
             } catch (e) {
                 console.error("Error downloading OVPN file:", e)
