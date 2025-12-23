@@ -33,12 +33,16 @@ export default function LoginPage() {
     try {
       const user = await authService.signIn(email, password)
 
-      if (user.role !== "admin") {
-        await authService.signOut()
-        toast.error("Login Failed", {
-          description: "Access Restricted: You do not have administrator privileges."
+      if (user.role === "admin") {
+        toast.success("Welcome back!", {
+          description: "You have successfully signed in.",
         })
-        return
+        router.push("/dashboard")
+      } else {
+        toast.success("Welcome!", {
+          description: "You have successfully signed in.",
+        })
+        router.push("/user-dashboard")
       }
 
       toast.success("Welcome back!", {
@@ -70,12 +74,16 @@ export default function LoginPage() {
     try {
       const user = await authService.signInWithGoogle()
 
-      if (user.role !== "admin") {
-        await authService.signOut()
-        toast.error("Login Failed", {
-          description: "Access Restricted: You do not have administrator privileges."
+      if (user.role === "admin") {
+        toast.success("Welcome back!", {
+          description: "You have successfully signed in with Google.",
         })
-        return
+        router.push("/dashboard")
+      } else {
+        toast.success("Welcome!", {
+          description: "You have successfully signed in with Google.",
+        })
+        router.push("/user-dashboard")
       }
 
       toast.success("Welcome back!", {
