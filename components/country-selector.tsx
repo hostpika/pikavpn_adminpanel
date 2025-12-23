@@ -7,57 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
-const countries = [
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", flag: "🇦🇺" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "JP", name: "Japan", flag: "🇯🇵" },
-  { code: "SG", name: "Singapore", flag: "🇸🇬" },
-  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
-  { code: "SE", name: "Sweden", flag: "🇸🇪" },
-  { code: "CH", name: "Switzerland", flag: "🇨🇭" },
-  { code: "ES", name: "Spain", flag: "🇪🇸" },
-  { code: "IT", name: "Italy", flag: "🇮🇹" },
-  { code: "IN", name: "India", flag: "🇮🇳" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷" },
-  { code: "KR", name: "South Korea", flag: "🇰🇷" },
-  { code: "MX", name: "Mexico", flag: "🇲🇽" },
-  { code: "AR", name: "Argentina", flag: "🇦🇷" },
-  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
-  { code: "NO", name: "Norway", flag: "🇳🇴" },
-  { code: "DK", name: "Denmark", flag: "🇩🇰" },
-  { code: "FI", name: "Finland", flag: "🇫🇮" },
-  { code: "PL", name: "Poland", flag: "🇵🇱" },
-  { code: "IE", name: "Ireland", flag: "🇮🇪" },
-  { code: "AT", name: "Austria", flag: "🇦🇹" },
-  { code: "BE", name: "Belgium", flag: "🇧🇪" },
-  { code: "CZ", name: "Czech Republic", flag: "🇨🇿" },
-  { code: "PT", name: "Portugal", flag: "🇵🇹" },
-  { code: "GR", name: "Greece", flag: "🇬🇷" },
-  { code: "TR", name: "Turkey", flag: "🇹🇷" },
-  { code: "IL", name: "Israel", flag: "🇮🇱" },
-  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪" },
-  { code: "HK", name: "Hong Kong", flag: "🇭🇰" },
-  { code: "TW", name: "Taiwan", flag: "🇹🇼" },
-  { code: "TH", name: "Thailand", flag: "🇹🇭" },
-  { code: "ID", name: "Indonesia", flag: "🇮🇩" },
-  { code: "MY", name: "Malaysia", flag: "🇲🇾" },
-  { code: "PH", name: "Philippines", flag: "🇵🇭" },
-  { code: "VN", name: "Vietnam", flag: "🇻🇳" },
-  { code: "NZ", name: "New Zealand", flag: "🇳🇿" },
-  { code: "RO", name: "Romania", flag: "🇷🇴" },
-  { code: "BG", name: "Bulgaria", flag: "🇧🇬" },
-  { code: "HR", name: "Croatia", flag: "🇭🇷" },
-  { code: "RS", name: "Serbia", flag: "🇷🇸" },
-  { code: "UA", name: "Ukraine", flag: "🇺🇦" },
-  { code: "CL", name: "Chile", flag: "🇨🇱" },
-  { code: "CO", name: "Colombia", flag: "🇨🇴" },
-  { code: "PE", name: "Peru", flag: "🇵🇪" },
-  { code: "EG", name: "Egypt", flag: "🇪🇬" },
-]
+import { COUNTRIES } from "@/lib/countries"
 
 interface CountrySelectorProps {
   value: string
@@ -68,7 +18,7 @@ interface CountrySelectorProps {
 export function CountrySelector({ value, onChange, placeholder = "Select country..." }: CountrySelectorProps) {
   const [open, setOpen] = React.useState(false)
 
-  const selectedCountry = countries.find((country) => country.name === value)
+  const selectedCountry = COUNTRIES.find((country) => country.name === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -96,7 +46,7 @@ export function CountrySelector({ value, onChange, placeholder = "Select country
           <CommandList>
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
-              {countries.map((country) => (
+              {COUNTRIES.map((country) => (
                 <CommandItem
                   key={country.code}
                   value={country.name}

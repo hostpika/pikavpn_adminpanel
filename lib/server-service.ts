@@ -84,20 +84,11 @@ export async function getServer(id: string): Promise<ServerData | null> {
 }
 
 // Get country flag emoji from country name
+import { COUNTRIES } from "@/lib/countries"
+
 export function getCountryFlag(country: string): string {
-  const flagMap: Record<string, string> = {
-    "United States": "🇺🇸",
-    Germany: "🇩🇪",
-    Singapore: "🇸🇬",
-    "United Kingdom": "🇬🇧",
-    France: "🇫🇷",
-    Canada: "🇨🇦",
-    Japan: "🇯🇵",
-    Australia: "🇦🇺",
-    Netherlands: "🇳🇱",
-    India: "🇮🇳",
-  }
-  return flagMap[country] || "🌐"
+  const found = COUNTRIES.find(c => c.name === country)
+  return found?.flag || "🌐"
 }
 
 // Helper to convert File to base64
