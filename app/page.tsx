@@ -526,6 +526,11 @@ export default function LandingPage() {
                   </a>
                 </li>
                 <li>
+                  <Link href="/delete-account" className="hover:text-destructive transition-colors">
+                    Delete Account
+                  </Link>
+                </li>
+                <li>
                   <Link href="/login" className="hover:text-primary transition-colors">
                     Admin
                   </Link>
