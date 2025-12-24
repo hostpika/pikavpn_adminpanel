@@ -90,6 +90,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarDensity } = usePreferences()
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { user, signOut, loading } = useAuth()
 
@@ -202,7 +203,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isActive = pathname === item.href || (item.children && item.children.some(c => pathname === c.href))
     const isExpanded = expandedMenus.includes(item.name)
     const hasChildren = item.children && item.children.length > 0
-    const searchParams = useSearchParams()
 
     const toggleMenu = (e: React.MouseEvent) => {
       if (hasChildren) {

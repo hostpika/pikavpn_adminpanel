@@ -69,6 +69,7 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
     const { sidebarDensity } = usePreferences()
     const pathname = usePathname()
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     const { user, signOut } = useAuth()
 
@@ -125,7 +126,6 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
         const isExpanded = expandedMenus.includes(item.name)
         // @ts-ignore
         const hasChildren = item.children && item.children.length > 0
-        const searchParams = useSearchParams()
 
         const toggleMenu = (e: React.MouseEvent) => {
             if (hasChildren) {
