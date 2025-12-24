@@ -1,0 +1,46 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Navigate to app directory (adjust path as needed)
+            cd ~/vpn-admin-panel || git clone https://github.com/${{ github.repository }} ~/vpn-admin-panel
+            cd ~/vpn-admin-panel
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Install dependencies
+            # Using --legacy-peer-deps just in case of conflicts, remove if not needed
+            npm install --legacy-peer-deps
+            
+            # Build the Next.js app
+            npm run build
+            
+            # Start or Restart PM2 process
+            # Check if process exists
+            if pm2 describe vpn-admin-panel > /dev/null; then
+              pm2 reload vpn-admin-panel
+            else
+              pm2 start npm --name "vpn-admin-panel" -- start
+            fi
+            
+            # Save PM2 list so it restarts on reboot
+            pm2 save
