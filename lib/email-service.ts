@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/internal/firebase';
 
 interface EmailTemplateParams {
     username: string;
-    scenario: 'admin_granted' | 'admin_revoked' | 'account_banned' | 'account_reactivated' | 'premium_granted' | 'premium_revoked';
+    scenario: 'admin_granted' | 'admin_revoked' | 'account_banned' | 'account_reactivated' | 'premium_granted' | 'premium_revoked' | 'account_deleted';
 }
 interface SmtpConfig {
     host: string;
@@ -69,6 +69,13 @@ function getTemplateContext(scenario: EmailTemplateParams['scenario']) {
                 icon: '📉',
                 headline: 'Premium Access Ended',
                 bodyMessage: 'Your Premium subscription has been cancelled or expired. Your account has been reverted to the Free plan.'
+            };
+        case 'account_deleted':
+            return {
+                statusColor: '#EF4444', // Red
+                icon: '🗑️',
+                headline: 'Account Deleted',
+                bodyMessage: 'Your account has been successfully deleted upon your request. We are sorry to see you go. If this was a mistake, please contact support immediately.'
             };
     }
 }
