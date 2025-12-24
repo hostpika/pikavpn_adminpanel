@@ -111,27 +111,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (mounted && !loading) {
-      if (!user) {
-        router.push("/login")
-      } else if (user.role !== "admin") {
-        router.push("/user-dashboard")
-      }
-    }
-  }, [mounted, user, loading, router])
-
-  // Prevent rendering for unauthorized users
-  if (!mounted || loading || !user || user.role !== "admin") {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-
   const densityClasses = {
     compact: { py: "py-1.5", gap: "gap-2", textSize: "text-xs", iconSize: "h-4 w-4" },
     comfortable: { py: "py-2.5", gap: "gap-3", textSize: "text-sm", iconSize: "h-5 w-5" },
@@ -197,6 +176,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     })
   }, [pathname])
+
+  // Redirect if not admin
+  useEffect(() => {
+    if (mounted && !loading) {
+      if (!user) {
+        router.push("/login")
+      } else if (user.role !== "admin") {
+        router.push("/user-dashboard")
+      }
+    }
+  }, [mounted, user, loading, router])
+
+  // Prevent rendering for unauthorized users
+  if (!mounted || loading || !user || user.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+
+
+
+
 
   // Added isCollapsed prop to decouple from parent state
   const NavLink = ({ item, isCollapsed }: { item: (typeof navigation)[0], isCollapsed: boolean }) => {
