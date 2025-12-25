@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             await serverRef.update({ ovpnFileUrl: url, ovpnFilePath: filePath })
         }
 
-        await logAdminAction(admin.uid as string, admin.email as string, "CREATE", "SERVER", `Created server ${serverData.name}`, serverId)
+        await logAdminAction(admin.uid as string, (admin.email as string) || "unknown", "CREATE", "SERVER", `Created server ${serverData.name}`, serverId)
 
         return NextResponse.json({ id: serverId }, { status: 201 })
     } catch (error) {
@@ -113,7 +113,7 @@ export async function PUT(request: Request) {
             await serverRef.update({ ovpnFileUrl: url, ovpnFilePath: filePath })
         }
 
-        await logAdminAction(admin.uid as string, admin.email as string, "UPDATE", "SERVER", `Updated server ${id}`, id)
+        await logAdminAction(admin.uid as string, (admin.email as string) || "unknown", "UPDATE", "SERVER", `Updated server ${id}`, id)
 
         return NextResponse.json({ success: true })
     } catch (error) {
@@ -146,7 +146,7 @@ export async function DELETE(request: Request) {
         }
 
         await serverRef.delete()
-        await logAdminAction(admin.uid as string, admin.email as string, "DELETE", "SERVER", `Deleted server ${id}`, id)
+        await logAdminAction(admin.uid as string, (admin.email as string) || "unknown", "DELETE", "SERVER", `Deleted server ${id}`, id)
 
         return NextResponse.json({ success: true })
     } catch (error) {
