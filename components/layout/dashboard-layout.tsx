@@ -307,11 +307,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
               <Shield className="h-6 w-6 text-white" />
             </div>
-<<<<<<< HEAD
             {!isCollapsed && <span className="text-xl font-bold gradient-text">Pika VPN</span>}
-=======
-            {!isCollapsed && <span className="text-xl font-bold gradient-text">FreeShield VPN</span>}
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
           </div>
         </div>
       )}
@@ -328,11 +324,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {!isCollapsed && (
           <div className="animate-fade-in opacity-20 hover:opacity-100 transition-opacity duration-300">
             <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-<<<<<<< HEAD
               HostPika
-=======
-              Tynybite Labs
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             </h2>
             <p className="text-xs font-medium text-muted-foreground mt-1">Made with Love ❤️</p>
           </div>
@@ -417,11 +409,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                 <Shield className="h-6 w-6 text-white" />
               </div>
-<<<<<<< HEAD
               <span className="text-xl font-bold gradient-text">Pika VPN</span>
-=======
-              <span className="text-xl font-bold gradient-text">Freeshield VPN</span>
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             </SheetTitle>
           </SheetHeader>
           <Suspense fallback={<div />}>

@@ -122,11 +122,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-3xl font-bold">Welcome Back</CardTitle>
-<<<<<<< HEAD
             <CardDescription className="text-base mt-2">Sign in to access the Pika VPN admin panel</CardDescription>
-=======
-            <CardDescription className="text-base mt-2">Sign in to access the FreeShield VPN Pro admin panel</CardDescription>
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
           </div>
         </CardHeader>
 

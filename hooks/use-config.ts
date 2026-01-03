@@ -107,11 +107,7 @@ const defaultConfig: ConfigState = {
     ui: {
         primaryColor: "#3b82f6",
         accentColor: "#06b6d4",
-<<<<<<< HEAD
         appName: "Pika VPN",
-=======
-        appName: "FreeShield VPN Pro",
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
         logoUrl: "https://example.com/logo.png",
         showcaseText: "Fast and secure VPN connections worldwide. Protect your privacy with military-grade encryption.",
     },

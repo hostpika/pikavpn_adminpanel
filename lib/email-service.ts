@@ -33,44 +33,28 @@ function getTemplateContext(scenario: EmailTemplateParams['scenario']) {
                 statusColor: '#10B981', // Green
                 icon: '🎉',
                 headline: 'You now have Admin Access',
-<<<<<<< HEAD
                 bodyMessage: 'We are pleased to inform you that your Pika VPN account has been upgraded. You now have full administrative privileges to manage users and server configurations.'
-=======
-                bodyMessage: 'We are pleased to inform you that your FreeShield VPN account has been upgraded. You now have full administrative privileges to manage users and server configurations.'
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             };
         case 'admin_revoked':
             return {
                 statusColor: '#F59E0B', // Amber/Orange
                 icon: '🔒',
                 headline: 'Administrative Privileges Updated',
-<<<<<<< HEAD
                 bodyMessage: 'Your administrative access for Pika VPN has been revoked. Your account remains active with standard user permissions. If you need to request access again, please contact the IT department.'
-=======
-                bodyMessage: 'Your administrative access for FreeShield VPN has been revoked. Your account remains active with standard user permissions. If you need to request access again, please contact the IT department.'
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             };
         case 'account_banned':
             return {
                 statusColor: '#EF4444', // Red
                 icon: '🚫',
                 headline: 'Account Suspended',
-<<<<<<< HEAD
                 bodyMessage: 'Your Pika VPN account has been suspended due to a violation of our Terms of Service. Access to the network is currently blocked.'
-=======
-                bodyMessage: 'Your FreeShield VPN account has been suspended due to a violation of our Terms of Service. Access to the network is currently blocked.'
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             };
         case 'account_reactivated':
             return {
                 statusColor: '#3B82F6', // Brand Blue
                 icon: '✨',
                 headline: 'Welcome Back!',
-<<<<<<< HEAD
                 bodyMessage: 'Great news! Your Pika VPN account has been successfully reactivated. You may now log in and connect to our secure servers immediately.'
-=======
-                bodyMessage: 'Great news! Your FreeShield VPN account has been successfully reactivated. You may now log in and connect to our secure servers immediately.'
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             };
         case 'premium_granted':
             return {
@@ -132,11 +116,7 @@ function generateHtml(username: string, context: ReturnType<typeof getTemplateCo
                     <tr>
                         <td align="center" style="padding: 40px 0 20px 0;">
                             <h2 style="margin: 0; color: #333333; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">
-<<<<<<< HEAD
                                 <span style="color: #2563EB;">Pika</span> VPN
-=======
-                                <span style="color: #2563EB;">FreeShield</span> VPN
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                             </h2>
                         </td>
                     </tr>
@@ -176,11 +156,7 @@ function generateHtml(username: string, context: ReturnType<typeof getTemplateCo
                     <tr>
                         <td style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
                             <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-<<<<<<< HEAD
                                 &copy; 2026 Pika VPN. All rights reserved.<br>
-=======
-                                &copy; 2026 FreeShield VPN. All rights reserved.<br>
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                                 123 Secure Street, Privacy City, Web 3.0
                             </p>
                         </td>
@@ -253,11 +229,7 @@ export async function sendUserStatusEmail(toEmail: string, params: EmailTemplate
         await transporter.sendMail({
             from: `"${config.fromName}" <${config.fromEmail}>`,
             to: toEmail,
-<<<<<<< HEAD
             subject: `${context.icon} ${context.headline} - Pika VPN`,
-=======
-            subject: `${context.icon} ${context.headline} - FreeShield VPN`,
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
             html: htmlContent,
         });
         console.log(`Email sent successfully to ${toEmail}`);
@@ -285,22 +257,14 @@ export async function sendCustomEmail(toEmail: string, subject: string, message:
     <table align="center" width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
         <tr>
             <td style="padding: 40px;">
-<<<<<<< HEAD
                 <h2 style="color: #333333; margin-top: 0;">Pika VPN</h2>
-=======
-                <h2 style="color: #333333; margin-top: 0;">FreeShield VPN</h2>
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
                 <div style="color: #4b5563; font-size: 16px; line-height: 1.6;">
                     ${message.replace(/\n/g, '<br>')}
                 </div>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
                 <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-<<<<<<< HEAD
                     &copy; ${new Date().getFullYear()} Pika VPN. All rights reserved.
-=======
-                    &copy; ${new Date().getFullYear()} FreeShield VPN. All rights reserved.
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                 </p>
             </td>
         </tr>

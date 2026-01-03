@@ -22,11 +22,7 @@ const delius = Delius({
 })
 
 export const metadata: Metadata = {
-<<<<<<< HEAD
   title: "Pika VPN - Admin Panel",
-=======
-  title: "Super VPN - Admin Panel",
->>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
   description: "Secure VPN management dashboard with advanced analytics and control",
   icons: {
     icon: [
