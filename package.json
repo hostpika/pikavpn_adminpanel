@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "name": "Pika VPN-admin-panel",
+=======
+  "name": "FreeShield VPN-admin-panel",
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -80,4 +84,8 @@
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691

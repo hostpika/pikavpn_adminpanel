@@ -360,7 +360,11 @@ export default function LandingPage() {
               <div className="relative z-10 mx-auto w-full max-w-sm">
                 <img
                   src="/modern-vpn-mobile-app-interface.jpg"
+<<<<<<< HEAD
                   alt="Pika VPN App"
+=======
+                  alt="FreeShield VPN Pro App"
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                   className="rounded-3xl shadow-2xl"
                 />
               </div>
@@ -466,7 +470,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
+<<<<<<< HEAD
               <h3 className="text-2xl font-bold mb-4 gradient-text">Pika VPN</h3>
+=======
+              <h3 className="text-2xl font-bold mb-4 gradient-text">FreeShield VPN Pro</h3>
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
               <p className="text-gray-400">Securing your digital freedom worldwide.</p>
             </div>
 
@@ -540,7 +548,11 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
+<<<<<<< HEAD
             <p>&copy; {new Date().getFullYear()} Pika VPN. All rights reserved.</p>
+=======
+            <p>&copy; {new Date().getFullYear()} FreeShield VPN Pro. All rights reserved.</p>
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
           </div>
         </div>
       </footer>

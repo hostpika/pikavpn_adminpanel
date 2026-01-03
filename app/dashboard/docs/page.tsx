@@ -192,7 +192,11 @@ function OverviewContent() {
         <div className="space-y-8 text-foreground/90 leading-relaxed">
             <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <p className="text-xl font-light text-muted-foreground border-l-4 border-primary/50 pl-6 py-1">
+<<<<<<< HEAD
                     Pika VPN is a premium, free-to-use VPN application built with Flutter, designed for security, speed, and backend-driven flexibility.
+=======
+                    FreeShield VPN is a premium, free-to-use VPN application built with Flutter, designed for security, speed, and backend-driven flexibility.
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
                 </p>
 
                 <h3 className="text-2xl font-semibold mt-8 mb-4">Product Vision</h3>
@@ -525,7 +529,11 @@ function EndpointDoc({
     const [copied, setCopied] = useState(false)
 
     const copyCurl = () => {
+<<<<<<< HEAD
         const curl = `curl -X ${method} "https://api.Pika VPN.com${path}" \\
+=======
+        const curl = `curl -X ${method} "https://api.FreeShield VPN.com${path}" \\
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
 ${method !== "GET" ? "  -H \"Content-Type: application/json\" \\" : ""}
   -H "Authorization: Bearer <TOKEN>"${requestBody ? ` \\
   -d '${JSON.stringify(requestBody)}'` : ""}`
@@ -566,7 +574,11 @@ ${method !== "GET" ? "  -H \"Content-Type: application/json\" \\" : ""}
 
                     <TabsContent value="curl" className="m-0 group relative">
                         <pre className="p-5 overflow-x-auto text-xs font-mono bg-[#0d1117] text-gray-300 leading-relaxed scrollbar-hide">
+<<<<<<< HEAD
                             {`curl -X ${method} "https://api.Pika VPN.com${path}" \\
+=======
+                            {`curl -X ${method} "https://api.FreeShield VPN.com${path}" \\
+>>>>>>> 4ab9dcfdfc30a971726512fce40f65b77005d691
   -H "Authorization: Bearer <TOKEN>"${method !== "GET" ? " \\" : ""}
 ${method !== "GET" ? `  -H "Content-Type: application/json"${requestBody ? " \\" : ""}` : ""}${requestBody ? `
   -d '${JSON.stringify(requestBody, null, 2)}'` : ""}`}
