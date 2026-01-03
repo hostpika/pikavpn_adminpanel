@@ -244,7 +244,7 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
                 {!isCollapsed && (
                     <div className="animate-fade-in opacity-20 hover:opacity-100 transition-opacity duration-300">
                         <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                            Tynybite Labs
+                            HostPika
                         </h2>
                         <p className="text-xs font-medium text-muted-foreground mt-1">Made with Love ❤️</p>
                     </div>
