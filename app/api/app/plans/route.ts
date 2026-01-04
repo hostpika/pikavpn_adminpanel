@@ -4,9 +4,12 @@ import { adminDb } from "@/lib/internal/firebase"
 export async function GET(request: Request) {
     try {
         // Fetch only active plans for the mobile app
+        console.log("Fetching active plans for app...")
         const snapshot = await adminDb.collection("plans")
             .where("isActive", "==", true)
             .get()
+
+        console.log(`Found ${snapshot.size} active plans`)
 
         const plans = snapshot.docs.map(doc => {
             const data = doc.data()
