@@ -39,7 +39,12 @@ export async function logAdminAction(
         await adminFirestore.collection("activity_logs").add(logData);
         console.log(`[Admin Log] ${action} on ${targetType}: ${details}`);
     } catch (error) {
+<<<<<<< HEAD
         // Log locally but do not fail the request
         console.warn("Failed to write admin log (non-fatal):", error);
+=======
+        console.error("Failed to write admin log:", error);
+        throw error; // Propagate error to API handler
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
     }
 }

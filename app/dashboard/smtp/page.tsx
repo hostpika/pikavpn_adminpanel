@@ -25,7 +25,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+<<<<<<< HEAD
 import { Label } from "@/components/ui/label"
+=======
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
 import {
     Card,
     CardContent,
@@ -61,7 +64,10 @@ export default function SmtpPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [deleting, setDeleting] = useState(false)
+<<<<<<< HEAD
     const [testing, setTesting] = useState(false)
+=======
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
     const [isAdmin, setIsAdmin] = useState(false) // Inferred from API or Auth
     const { user } = useAuth()
 
@@ -170,6 +176,7 @@ export default function SmtpPage() {
         }
     }
 
+<<<<<<< HEAD
     const handleTest = async (testEmail: string) => {
         if (!testEmail) {
             toast.error("Please enter an email address to send the test to.")
@@ -225,6 +232,8 @@ export default function SmtpPage() {
         }
     }
 
+=======
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
     const handleDelete = async () => {
         try {
             setDeleting(true)
@@ -434,6 +443,7 @@ export default function SmtpPage() {
                                             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                             Save Changes
                                         </Button>
+<<<<<<< HEAD
 
                                     </div>
 
@@ -462,6 +472,8 @@ export default function SmtpPage() {
                                                 Test Connection
                                             </Button>
                                         </div>
+=======
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
                                     </div>
                                 </form>
                             </Form>
@@ -543,6 +555,7 @@ export default function SmtpPage() {
                             </div>
                         </CardContent>
                     </Card>
+<<<<<<< HEAD
 
                     <Card className="bg-muted/50 border-muted mt-6">
                         <CardHeader>
@@ -564,5 +577,10 @@ export default function SmtpPage() {
                 </div >
             </div >
         </div >
+=======
+                </div>
+            </div>
+        </div>
+>>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
     )
 }
