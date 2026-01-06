@@ -17,7 +17,7 @@ export interface SmtpConfig {
     fromName?: string;
 }
 
-async function getSmtpConfig(): Promise<SmtpConfig | null> {
+export async function getSmtpConfig(): Promise<SmtpConfig | null> {
     try {
         const doc = await adminDb.collection('settings').doc('smtp').get();
         if (!doc.exists) return null;
