@@ -6,12 +6,8 @@ interface EmailTemplateParams {
     username: string;
     scenario: 'admin_granted' | 'admin_revoked' | 'account_banned' | 'account_reactivated' | 'premium_granted' | 'premium_revoked' | 'account_deleted';
 }
-<<<<<<< HEAD
 
 export interface SmtpConfig {
-=======
-interface SmtpConfig {
->>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
     host: string;
     port: number;
     username?: string;
@@ -31,7 +27,6 @@ async function getSmtpConfig(): Promise<SmtpConfig | null> {
         return null;
     }
 }
-<<<<<<< HEAD
 
 function createTransporter(config: SmtpConfig) {
     const port = Number(config.port);
@@ -105,8 +100,7 @@ export async function verifySmtpConfig(config: SmtpConfig, toEmail?: string): Pr
     }
 }
 
-=======
->>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
+
 function getTemplateContext(scenario: EmailTemplateParams['scenario']) {
     switch (scenario) {
         case 'admin_granted':
@@ -276,39 +270,7 @@ export async function sendUserStatusEmail(toEmail: string, params: EmailTemplate
     const context = getTemplateContext(params.scenario);
     const htmlContent = generateHtml(params.username, context);
 
-<<<<<<< HEAD
     const transporter = createTransporter(config);
-=======
-    const port = Number(config.port);
-    const isSSLPort = port === 465;
-    const isSTARTTLSPort = port === 587;
-
-    // Logic: 
-    // - Port 465 is implicit SSL -> secure: true
-    // - Port 587 is STARTTLS -> secure: false
-    // - Other ports: trust 'config.encryption' setting, but default to false if not 'ssl'
-    let useSecure = isSSLPort;
-    if (!isSSLPort && !isSTARTTLSPort && config.encryption === 'ssl') {
-        useSecure = true;
-    }
-
-    console.log(`SMTP Debug: Port=${port} (type=${typeof config.port}), Encryption=${config.encryption}, Decided Secure=${useSecure}`);
-
-    const transporter = nodemailer.createTransport({
-        host: config.host,
-        port: port,
-        secure: useSecure,
-        auth: {
-            user: config.username,
-            pass: config.password,
-        },
-        tls: {
-            // Do not fail on invalid certs
-            rejectUnauthorized: false
-        }
-    });
-
->>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
 
     try {
         await transporter.sendMail({
@@ -357,29 +319,7 @@ export async function sendCustomEmail(toEmail: string, subject: string, message:
 </body>
 </html>`;
 
-<<<<<<< HEAD
     const transporter = createTransporter(config);
-=======
-    const port = Number(config.port);
-    const isSSLPort = port === 465;
-    const isSTARTTLSPort = port === 587;
-
-    let useSecure = isSSLPort;
-    if (!isSSLPort && !isSTARTTLSPort && config.encryption === 'ssl') {
-        useSecure = true;
-    }
-
-    const transporter = nodemailer.createTransport({
-        host: config.host,
-        port: port,
-        secure: useSecure,
-        auth: {
-            user: config.username,
-            pass: config.password,
-        },
-        tls: { rejectUnauthorized: false }
-    });
->>>>>>> 7a035c84ef42d82ade25079c5900e34b350d176f
 
     try {
         await transporter.sendMail({
